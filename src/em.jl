@@ -1,3 +1,5 @@
+using Zygote: dropgrad
+
 struct DenseMixture{T,C}
 	components::Vector{C}
 	prior::Vector{T}
@@ -17,15 +19,16 @@ Flux.mapchildren(f, x::DenseMixture) = f.(Flux.children(x))
 """
 function estep!(m::DenseMixture, x)
 	lkl = reduce(vcat, [transpose(logpdf(c, x)) for c in m.components])
-	y = mapslices(argmax, softmax(lkl), dims = 1)
-	o = Flux.onehotbatch(y[:], 1:length(m.components))
+	y = Flux.onecold(lkl)
+	o = Flux.onehotbatch(y, 1:length(m.components))
+	m.prior .= mean(o, dims = 2)
 	mean( o .* lkl)
 end
 
 function estep(m::DenseMixture, x)
 	lkl = hcat([logpdf(c, x) for c in m.components]...)
-	y = mapslices(argmax, lkl, dims = 2)
-	o = Flux.onehotbatch(y[:], 1:length(m.components))
+	y = Flux.onecold(transpose(lkl))
+	o = Flux.onehotbatch(dropgrad(y), 1:length(m.components))
 	mean( transpose(o) .* lkl)
 end
 
@@ -33,7 +36,7 @@ function Distributions.logpdf(m::DenseMixture, x::AbstractMatrix)
 	lkl = hcat([logpdf(c, x) for c in m.components]...)
 	# log.(sum(m.prior' .* exp.(lkl), dims = 2))
 	# log.(sum(m.prior' .* exp.(lkl), dims = 2))
-	logsumexp(m.prior' .+ lkl, dims = 2)
+	logsumexp(log.(m.prior' .+ 1f-8) .+ lkl, dims = 2)
 end
 
 Distributions.logpdf(m::DenseMixture, x::Tuple) = logpdf(m, reshape(collect(x), :, 1))[1]
