@@ -4,6 +4,8 @@ struct DenseP{M,MI,P} <: Distributions.ContinuousMultivariateDistribution
 	p::P 
 end
 
+Base.show(io::IO, m::DenseP{M,MI,P}) where {M,MI,P} = print(io, "DenseP{",m.m,",",m.p,"}")
+
 Flux.@treelike(DenseP)
 
 DenseP(m, p) = DenseP(m, inv(m), p)
