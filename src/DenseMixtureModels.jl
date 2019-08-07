@@ -45,6 +45,6 @@ include("em.jl")
 include("densep.jl")
 include("modelbuilders.jl")
 
-export densesharedmixture, nosharedmixture, allsharedmixture, priors, updateprior!
+export densesharedmixture, nosharedmixture, allsharedmixture, priors, updateprior!, buildmixture
 
 end # module
