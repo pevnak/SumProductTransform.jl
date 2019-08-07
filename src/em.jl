@@ -23,6 +23,9 @@ end
 Flux.children(x::DenseMixture) = x.components
 Flux.mapchildren(f, x::DenseMixture) = f.(Flux.children(x))
 
+
+_priors(m::DenseMixtureModels.DenseMixture) = m.prior
+
 Zygote.@adjoint Flux.onehotbatch(y, n) = Flux.onehotbatch(y,n), Δ -> (nothing, nothing)
 Zygote.@adjoint Flux.onecold(x) = Flux.onecold(x), Δ -> (nothing,)
 

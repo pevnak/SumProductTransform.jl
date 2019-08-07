@@ -30,10 +30,21 @@ log_normal(x) = - sum(x.^2, dims=1) / 2 .- size(x,1)*log(2π) / 2
 log_normal(x,μ) = log_normal(x .- μ)
 log_normal(x,μ, σ2::T) where {T<:Number} = - sum((@. ((x - μ)^2)/σ2), dims=1)/2 .- size(x,1)*log(σ2*2π)/2
 
+_priors(m) = nothing
+function priors(m)
+  ps = Flux.Params()
+  Flux.prefor(p -> begin
+  	pr = _priors(p)
+  	pr != nothing && !any(p′ -> p′ === pr, ps) && push!(ps, pr)
+  end, m)
+  return ps
+end
+
+
 include("em.jl")
 include("densep.jl")
 include("modelbuilders.jl")
 
-export sharedmixture, nosharedmixture, allsharedmixture, updateprior!
+export densesharedmixture, nosharedmixture, allsharedmixture, priors, updateprior!
 
 end # module
