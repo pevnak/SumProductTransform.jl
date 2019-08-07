@@ -4,7 +4,16 @@ struct DenseP{M,MI,P} <: Distributions.ContinuousMultivariateDistribution
 	p::P 
 end
 
-Base.show(io::IO, m::DenseP{M,MI,P}) where {M,MI,P} = print(io, "DenseP{",m.m,",",m.p,"}")
+Base.show(io::IO, m::DenseP{M,MI,P}) where {M,MI,P} = dsprint(io, m)
+function dsprint(io::IO, n::DenseP; pad=[])
+    c = COLORS[(length(pad)%length(COLORS))+1]
+    paddedprint(io, " $(n.m) →\n", color=c, pad=pad)
+    dsprint(io, n.p, pad=[pad; (c, "     ")])
+end
+function dsprint(io::IO, n::DenseP{M,MI,P}; pad=[]) where {M,MI,P<:MvNormal}
+    c = COLORS[(length(pad)%length(COLORS))+1]
+    paddedprint(io, " $(n.m) → MvNormal\n", color=c, pad=pad)
+end
 
 Flux.@treelike(DenseP)
 

@@ -1,5 +1,5 @@
 using ToyProblems, Distributions, DenseMixtureModels, Unitary, Flux
-using DenseMixtureModels: createmixture, updateprior!
+# using DenseMixtureModels: 
 using Flux:throttle
 
 using Plots
@@ -17,7 +17,8 @@ end
 #			Let's do a single mixture
 ###############################################################################
 x = flower(200)
-m = createmixture(8);
+m = createmixture(2, 8);
+m = sharedmixture(2, 8, 1, identity, MultivariateNormal(2,1))
 # l = logpdf(m, x)
 ps = Flux.params(m);
 # gs = gradient(() ->  mean(logpdf(m, x)), ps)
@@ -30,7 +31,7 @@ visualize(m, x)
 ###############################################################################
 #			Let's try two nested mixtures
 ###############################################################################
-m = createmixture(4, identity, () -> createmixture(2))
+m = separatemixture(2, 4, 2, identity, MultivariateNormal(2,1))
 ps = Flux.params(m);
 opt = ADAM()
 Flux.train!(i -> -mean(logpdf(m, x)), Flux.Params(ps), 1:10000, opt; cb = throttle(() -> (@show mean(logpdf(m, x))),10))
@@ -40,10 +41,9 @@ visualize(m, x)
 ###############################################################################
 #			Let's try shared inner mixture
 ###############################################################################
-mi = createmixture(4);
-m = createmixture(4, identity, () -> mi)
+m = sharedmixture(2, 4, 2, identity, MultivariateNormal(2,1))
 ps = Flux.params(m);
-opt = RMSProp(0.01)
+opt = ADAM()
 Flux.train!(i -> -mean(logpdf(m, x)), Flux.Params(ps), 1:5000, opt; cb = throttle(() -> (@show mean(logpdf(m, x))),10))
 updateprior!(m, x);
 visualize(m, x)
