@@ -1,12 +1,12 @@
 using Zygote: dropgrad
 
-struct DenseMixture{T,C}
+struct SumNode{T,C}
 	components::Vector{C}
 	prior::Vector{T}
 end
 
-Base.show(io::IO, z::DenseMixture{T,C}) where {T,C} = dsprint(io, z)
-function dsprint(io::IO, n::DenseMixture; pad=[])
+Base.show(io::IO, z::SumNode{T,C}) where {T,C} = dsprint(io, z)
+function dsprint(io::IO, n::SumNode; pad=[])
     c = COLORS[(length(pad)%length(COLORS))+1]
     paddedprint(io, "Mixture\n", color=c, pad = pad)
 
@@ -20,11 +20,11 @@ function dsprint(io::IO, n::DenseMixture; pad=[])
 end
 
 
-Flux.children(x::DenseMixture) = x.components
-Flux.mapchildren(f, x::DenseMixture) = f.(Flux.children(x))
+Flux.children(x::SumNode) = x.components
+Flux.mapchildren(f, x::SumNode) = f.(Flux.children(x))
 
 
-_priors(m::DenseMixtureModels.DenseMixture) = m.prior
+_priors(m::SumNode) = m.prior
 
 Zygote.@adjoint Flux.onehotbatch(y, n) = Flux.onehotbatch(y,n), Δ -> (nothing, nothing)
 Zygote.@adjoint Flux.onecold(x) = Flux.onecold(x), Δ -> (nothing,)
@@ -36,7 +36,7 @@ Zygote.@adjoint Flux.onecold(x) = Flux.onecold(x), Δ -> (nothing,)
 	log-likelihood on samples `x`. During evaluation, weights of mixtures are taken into the account.
 	During training, the prior of the sample is one for the most likely component and zero for the others.
 """
-function Distributions.logpdf(m::DenseMixture, x)
+function Distributions.logpdf(m::SumNode, x)
 	lkl = transpose(hcat(map(c -> logpdf(c, x) ,m.components)...))
 	if Flux.istraining()
 		y = Flux.onecold(softmax(dropgrad(lkl), dims = 1))
@@ -46,33 +46,33 @@ function Distributions.logpdf(m::DenseMixture, x)
 		return(logsumexp(log.(m.prior .+ 1f-8) .+ lkl, dims = 1)[:])
 	end
 end
-Distributions.logpdf(m::DenseMixture, x::Tuple) = logpdf(m, reshape(collect(x), :, 1))[1]
+Distributions.logpdf(m::SumNode, x::Tuple) = logpdf(m, reshape(collect(x), :, 1))[1]
 
 
 """
-	updateprior!(m::DenseMixture, x)
+	updatelatent!(m::SumNode, x)
 
 	set weight of all components in `m` using data in `x`
 """
-function updateprior!(m::DenseMixture, x)
-	zeroprior!(m);
-	_updateprior!(m::DenseMixture, x);
-	normalizeprior!(m);
+function updatelatent!(m::SumNode, x)
+	zerolatent!(m);
+	_updatelatent!(m::SumNode, x);
+	normalizelatent!(m);
 end
 
-zeroprior!(m) = nothing
-function zeroprior!(m::DenseMixture)
+zerolatent!(m) = nothing
+function zerolatent!(m::SumNode)
 	m.prior .= 0 
-	foreach(zeroprior!, m.components)
+	foreach(zerolatent!, m.components)
 	nothing
 end
 
-normalizeprior!(m) = nothing
-function normalizeprior!(m::DenseMixture)
+normalizelatent!(m) = nothing
+function normalizelatent!(m::SumNode)
 	m.prior ./= max(sum(m.prior), 1)  
 end
 
-function _updateprior!(m::DenseMixture, x)
+function _updatelatent!(m::SumNode, x)
 	lkl = transpose(hcat(map(c -> logpdf(c, x),m.components)...))
 	y = Flux.onecold(softmax(dropgrad(lkl), dims = 1))
 	o = Flux.onehotbatch(y, 1:length(m.components))

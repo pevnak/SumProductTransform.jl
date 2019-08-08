@@ -1,4 +1,4 @@
-name = "DenseMixtureModels"
+name = "SumDenseProduct"
 uuid = "433b66b6-b370-11e9-0fbb-5537bf1cf77b"
 authors = ["Pevnak <pevnak@gmail.com>"]
 version = "0.1.0"

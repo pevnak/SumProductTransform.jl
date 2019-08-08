@@ -1,4 +1,4 @@
-module DenseMixtureModels
+module SumDenseProduct
 using Distributions, NNlib, Flux, Unitary, Zygote
 
 const COLORS = [:blue, :red, :green, :yellow, :cyan, :magenta]
@@ -41,10 +41,10 @@ function priors(m)
 end
 
 
-include("em.jl")
-include("densep.jl")
+include("sumnode.jl")
+include("densenode.jl")
 include("modelbuilders.jl")
 
-export densesharedmixture, nosharedmixture, allsharedmixture, priors, updateprior!, buildmixture
+export densesharedmixture, nosharedmixture, allsharedmixture, priors, updatelatent!, buildmixture
 
 end # module
