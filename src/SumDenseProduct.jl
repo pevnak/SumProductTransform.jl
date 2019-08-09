@@ -43,8 +43,10 @@ end
 
 include("sumnode.jl")
 include("densenode.jl")
+include("productnode.jl")
 include("modelbuilders.jl")
 
+export SumNode, DenseNode, ProductNode
 export densesharedmixture, nosharedmixture, allsharedmixture, priors, updatelatent!, buildmixture
 
 end # module

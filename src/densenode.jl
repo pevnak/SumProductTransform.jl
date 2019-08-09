@@ -15,6 +15,8 @@ function dsprint(io::IO, n::DenseNode{M,MI,P}; pad=[]) where {M,MI,P<:MvNormal}
     paddedprint(io, " $(n.m) → MvNormal\n", color=c, pad=pad)
 end
 
+Base.length(m::DenseNode) = length(m.p)
+
 Flux.@treelike(DenseNode)
 
 DenseNode(m, p) = DenseNode(m, inv(m), p)

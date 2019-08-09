@@ -3,7 +3,13 @@ using Zygote: dropgrad
 struct SumNode{T,C}
 	components::Vector{C}
 	prior::Vector{T}
+	function SumNode(components::Vector{C}, prior::Vector{T}) where {T,C}
+		ls = length.(components)
+		@assert all( ls .== ls[1])
+		new{T,C}(components, prior)
+	end
 end
+
 
 Base.show(io::IO, z::SumNode{T,C}) where {T,C} = dsprint(io, z)
 function dsprint(io::IO, n::SumNode; pad=[])
@@ -18,6 +24,9 @@ function dsprint(io::IO, n::SumNode; pad=[])
     paddedprint(io, "  └── $(n.prior[end])\n", color=c, pad=pad)
     dsprint(io, n.components[end], pad=[pad; (c, "      ")])
 end
+
+Base.getindex(m::SumNode,i ::Int) = (c = m.components[i], p = m.prior[i])
+Base.length(m::SumNode) = length(m.components[1])
 
 
 Flux.children(x::SumNode) = x.components
