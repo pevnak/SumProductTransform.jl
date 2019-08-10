@@ -10,6 +10,17 @@ struct SumNode{T,C}
 	end
 end
 
+"""
+	SumNode(components::Vector, prior::Vector)
+	SumNode(components::Vector) 
+
+	Mixture of components. Each component has to be a valid pdf. If prior vector 
+	is not provided, it is initialized to uniform.
+"""
+function SumNode(components::Vector) 
+	n = length(components); 
+	SumNode(components, fill(1/n, n))
+end
 
 Base.show(io::IO, z::SumNode{T,C}) where {T,C} = dsprint(io, z)
 function dsprint(io::IO, n::SumNode; pad=[])
