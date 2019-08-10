@@ -1,5 +1,5 @@
 module SumDenseProduct
-using Distributions, NNlib, Flux, Unitary, Zygote
+using Distributions, NNlib, Flux, Unitary, Zygote, StatsBase
 
 const COLORS = [:blue, :red, :green, :yellow, :cyan, :magenta]
 
@@ -45,6 +45,7 @@ include("sumnode.jl")
 include("densenode.jl")
 include("productnode.jl")
 include("modelbuilders.jl")
+include("fit.jl")
 
 export SumNode, DenseNode, ProductNode
 export densesharedmixture, nosharedmixture, allsharedmixture, priors, updatelatent!, buildmixture
