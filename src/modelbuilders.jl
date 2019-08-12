@@ -1,3 +1,4 @@
+using Unitary
 addnoise(noisedim, pnoise, p) = noisedim == 0 ? p : ProductNode((pnoise(noisedim), p))
 
 """

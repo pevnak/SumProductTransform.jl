@@ -22,29 +22,14 @@ function SumNode(components::Vector)
 	SumNode(components, fill(1/n, n))
 end
 
-Base.show(io::IO, z::SumNode{T,C}) where {T,C} = dsprint(io, z)
-function dsprint(io::IO, n::SumNode; pad=[])
-    c = COLORS[(length(pad)%length(COLORS))+1]
-    paddedprint(io, "Mixture\n", color=c, pad = pad)
-
-    m = length(n.components)
-    for i in 1:(m-1)
-        paddedprint(io, "  ├── $(n.prior[i])\n", color=c, pad=pad)
-        dsprint(io, n.components[i], pad=[pad; (c, "  │   ")])
-    end
-    paddedprint(io, "  └── $(n.prior[end])\n", color=c, pad=pad)
-    dsprint(io, n.components[end], pad=[pad; (c, "      ")])
-end
 
 Base.getindex(m::SumNode,i ::Int) = (c = m.components[i], p = m.prior[i])
 Base.length(m::SumNode) = length(m.components[1])
-
 
 Flux.children(x::SumNode) = x.components
 Flux.mapchildren(f, x::SumNode) = f.(Flux.children(x))
 
 
-_priors(m::SumNode) = m.prior
 
 Zygote.@adjoint Flux.onehotbatch(y, n) = Flux.onehotbatch(y,n), Δ -> (nothing, nothing)
 Zygote.@adjoint Flux.onecold(x) = Flux.onecold(x), Δ -> (nothing,)
@@ -72,7 +57,7 @@ Distributions.logpdf(m::SumNode, x::Tuple) = logpdf(m, reshape(collect(x), :, 1)
 """
 	updatelatent!(m::SumNode, x)
 
-	set weight of all components in `m` using data in `x`
+	estimate the probability of a component in `m` using data in `x`
 """
 function updatelatent!(m::SumNode, x)
 	zerolatent!(m);
@@ -98,3 +83,20 @@ function _updatelatent!(m::SumNode, x)
 	o = Flux.onehotbatch(y, 1:length(m.components))
 	m.prior .+= sum(o, dims = 2)[:]
 end
+_priors(m::SumNode) = m.prior
+
+
+Base.show(io::IO, z::SumNode{T,C}) where {T,C} = dsprint(io, z)
+function dsprint(io::IO, n::SumNode; pad=[])
+    c = COLORS[(length(pad)%length(COLORS))+1]
+    paddedprint(io, "Mixture\n", color=c, pad = pad)
+
+    m = length(n.components)
+    for i in 1:(m-1)
+        paddedprint(io, "  ├── $(n.prior[i])\n", color=c, pad=pad)
+        dsprint(io, n.components[i], pad=[pad; (c, "  │   ")])
+    end
+    paddedprint(io, "  └── $(n.prior[end])\n", color=c, pad=pad)
+    dsprint(io, n.components[end], pad=[pad; (c, "      ")])
+end
+
