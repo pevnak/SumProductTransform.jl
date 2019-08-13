@@ -41,7 +41,7 @@ using Distributed, ArgParse
 
   function runexp(dataset, repetition)
     modelparams = randpars()
-    ofname = "ex1_"*savename(modelparams)*replace("$(modelparams.σ)","NNlib." => "")
+    ofname = "ex1_"*savename(modelparams)*replace("_$(modelparams.σ)","NNlib." => "")
     isfile(joinpath(odir,dataset,"sumdense",ofname*"_model.bson")) && return(nothing)
     !isdir(joinpath(odir,dataset,"sumdense")) && mkpath(joinpath(odir,dataset,"sumdense"))
     anomalyexperiment(x -> fit(x, modelparams), dataset , joinpath(odir,dataset,"sumdense",ofname), aparam = (type = "easy", polution = 0.1, variation = "low"), repetition = repetition)
@@ -49,6 +49,6 @@ using Distributed, ArgParse
   end
 end
 
-pmap(p -> runexp(p[3], p[1]), Iterators.product(1:5,1:100, datasets))[]
+pmap(p -> runexp(p[3], p[1]), Iterators.product(datasets, 1:5,1:100))
 
 
