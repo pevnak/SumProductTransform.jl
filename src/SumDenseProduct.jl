@@ -26,9 +26,39 @@ end
 logsoftmax(x; dims = :) = x .- logsumexp(x, dims = dims)
 softmax(x; dims = :) = exp.(logsoftmax(x, dims = dims))
 
-log_normal(x) = - sum(x.^2, dims=1) / 2 .- size(x,1)*log(2π) / 2
+log_normal(x) = - sum(x.^2, dims=1) / 2 .- size(x,1)*log(Float32(2π)) / 2
 log_normal(x,μ) = log_normal(x .- μ)
 log_normal(x,μ, σ2::T) where {T<:Number} = - sum((@. ((x - μ)^2)/σ2), dims=1)/2 .- size(x,1)*log(σ2*2π)/2
+
+#Let's do a little bit of function stealing
+Distributions.logpdf(p::MvNormal, x::AbstractMatrix) = log_normal(x)[:]
+
+
+"""
+    pathcount(m)
+
+    Number of possible path of a model. For distributions it defaults to one.
+"""
+pathcount(m) = 1
+
+"""
+    pathlogpdf(p, x, path)
+
+    logpdf of samples `x` calculated along the `path` determining components in sumnodes (at the moment)
+    For distributions outside the SumDenseProduct it falls back to logpdf(p, x).
+"""
+pathlogpdf(m, x, path) = logpdf(m, x)
+
+"""
+    path = samplepath(m)
+
+    sample a path trough the model, which can be used by pathlogpdf to calculate the
+    pdf along this path.
+"""
+samplepath(m) = tuple()
+
+batchpathlogpdf(m, x, path) = map(i -> pathlogpdf(m, x[:,i:i], path[i])[1], 1:length(path))
+
 
 _priors(m) = nothing
 function priors(m)
@@ -48,6 +78,6 @@ include("modelbuilders.jl")
 include("fit.jl")
 
 export SumNode, DenseNode, ProductNode
-export densesharedmixture, nosharedmixture, allsharedmixture, priors, updatelatent!, buildmixture
+export densesharedmixture, nosharedmixture, allsharedmixture, priors, updatelatent!, buildmixture, pathcount
 
 end # module

@@ -31,11 +31,33 @@ function ProductNode(ps::Tuple)
 	ProductNode(ps, tuple(dimensions...))
 end
 
-Distributions.logpdf(m::ProductNode, x) = sum(map( p -> logpdf(p[1], x[p[2],:]), zip(m.components, m.dimensions)))
+function Distributions.logpdf(m::ProductNode, x)
+	o = logpdf(m.components[1], x[m.dimensions[1],:])
+	for i in 2:length(m.components)
+		o += logpdf(m.components[i], x[m.dimensions[i],:])
+	end
+	o
+end
+
+function pathlogpdf(p::ProductNode, x, path) 
+	o = pathlogpdf(p.components[1], x[p.dimensions[1],:], path[1])
+	for i in 2:length(p.components)
+		o += pathlogpdf(p.components[i], x[p.dimensions[i],:], path[i])
+	end
+	o
+end
+
+pathcount(m::ProductNode) = mapreduce(n -> pathcount(n), *, m.components)
+
+samplepath(m::ProductNode) = map(samplepath, m.components)
+
+Base.rand(m::ProductNode) = vcat([rand(p) for p in m.components]...)
+
 
 Base.length(m::ProductNode) = m.dimensions[end].stop
 Base.getindex(m::ProductNode, i...) = getindex(m.components, i...)
-Flux.@treelike(ProductNode)
+Flux.children(x::ProductNode) = x.components
+Flux.mapchildren(f, x::ProductNode) = f.(Flux.children(x))
 
 Base.show(io::IO, z::ProductNode) = dsprint(io, z)
 function dsprint(io::IO, n::ProductNode; pad=[])

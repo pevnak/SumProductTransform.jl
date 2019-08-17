@@ -26,7 +26,7 @@ using Distributed, ArgParse
       steps = rand([5000, 10000, 20000]),
       minimum_improvement =  1e-2,
       n = rand([2, 4, 8, 16]),
-      l = rand([1, 2, 3, 4]),
+      l = rand([1, 2, 3]),
       σ = rand([identity]),
       sharing = rand([:dense, :all, :none]))
   end
@@ -49,6 +49,6 @@ using Distributed, ArgParse
   end
 end
 
-pmap(p -> runexp(p[3], p[1]), Iterators.product(datasets, 1:5,1:100))
+pmap(p -> runexp(p[1], p[2]), Iterators.product(datasets, 1:5,1:100))
 
 

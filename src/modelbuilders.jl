@@ -2,11 +2,11 @@ using Unitary
 addnoise(noisedim, pnoise, p) = noisedim == 0 ? p : ProductNode((pnoise(noisedim), p))
 
 """
-	nosharedmixture(d::Int, n::Int, l::Int, σ = identity, p = d -> MultivariateNormal(d,1))
+	nosharedmixture(d::Int, n::Int, l::Int, σ = identity, p = d -> MvNormal(d,1f0))
 
 	There is not sharing here, as every children uses its own distributions
 """
-function nosharedmixture(d::Int, ns::Vector{Int}, σs::Vector, noise::Vector, p = d -> MultivariateNormal(d,1))
+function nosharedmixture(d::Int, ns::Vector{Int}, σs::Vector, noise::Vector, p = d -> MvNormal(d,1f0))
 	@assert length(ns) == length(σs) == length(noise) 
 	@assert sum(noise) <= d
 	n, σ, noisedim = ns[1], σs[1], noise[1]
@@ -21,16 +21,16 @@ function nosharedmixture(d::Int, ns::Vector{Int}, σs::Vector, noise::Vector, p 
 	end
 	SumNode(components)
 end
-nosharedmixture(d, ns::Vector, σs::Vector) = nosharedmixture(d, ns, σs, fill(0, length(ns)), d -> MultivariateNormal(d,1))
+nosharedmixture(d, ns::Vector, σs::Vector) = nosharedmixture(d, ns, σs, fill(0, length(ns)), d -> MvNormal(d,1f0))
 nosharedmixture(d::Int, n::Int, l::Int, σ = identity) = nosharedmixture(d, fill(n,l), fill(σ,l))
 
 
 """
-	allsharedmixture(d::Int, n::Int, l::Int, σ = identity, p = d -> MultivariateNormal(d,1))
+	allsharedmixture(d::Int, n::Int, l::Int, σ = identity, p = d -> MvNormal(d,1f0))
 
 	There is not sharing here, as every children uses its own distributions
 """
-function allsharedmixture(d::Int, ns::Vector{Int}, σs::Vector, noise::Vector, p = d -> MultivariateNormal(d,1))
+function allsharedmixture(d::Int, ns::Vector{Int}, σs::Vector, noise::Vector, p = d -> MvNormal(d,1f0))
 	@assert length(ns) == length(σs) == length(noise)
 	n, σ, noisedim = ns[end], σs[end], noise[end]
 	noisedim > 0 && @warn "We ignore the noise in last layer (they are independent anyway)"
@@ -43,15 +43,15 @@ function allsharedmixture(d::Int, ns::Vector{Int}, σs::Vector, noise::Vector, p
 	end
 	m
 end
-allsharedmixture(d, ns::Vector, σs::Vector) = allsharedmixture(d, ns, σs, fill(0, length(ns)), d -> MultivariateNormal(d,1))
+allsharedmixture(d, ns::Vector, σs::Vector) = allsharedmixture(d, ns, σs, fill(0, length(ns)), d -> MvNormal(d,1f0))
 allsharedmixture(d::Int, n::Int, l::Int, σ = identity) = allsharedmixture(d, fill(n,l), fill(σ,l))
 
 """
-	densesharedmixture(d::Int, n::Int, l::Int, σ = identity, p = d -> MultivariateNormal(d,1))
+	densesharedmixture(d::Int, n::Int, l::Int, σ = identity, p = d -> MvNormal(d,1f0))
 
 	the models share the dense non-linear layers, but they do not share components weights (priors)
 """
-function densesharedmixture(d::Int, ns::Vector{Int}, σs::Vector, noise::Vector, p = d -> MultivariateNormal(d,1))
+function densesharedmixture(d::Int, ns::Vector{Int}, σs::Vector, noise::Vector, p = d -> MvNormal(d,1f0))
 	@assert length(ns) == length(σs) == length(noise)
 	n, σ, noisedim = ns[end], σs[end], noise[end]
 	noisedim > 0 && @warn "We ignore the noise in last layer (they are independent anyway)"
@@ -65,10 +65,10 @@ function densesharedmixture(d::Int, ns::Vector{Int}, σs::Vector, noise::Vector,
 	m = SumNode(non_linear_part)
 	m
 end
-densesharedmixture(d, ns::Vector, σs::Vector) = densesharedmixture(d, ns, σs, fill(0, length(ns)), d -> MultivariateNormal(d,1))
+densesharedmixture(d, ns::Vector, σs::Vector) = densesharedmixture(d, ns, σs, fill(0, length(ns)), d -> MvNormal(d,1f0))
 densesharedmixture(d::Int, n::Int, l::Int, σ = identity) = densesharedmixture(d, fill(n,l), fill(σ,l))
 
-function buildmixture(d::Int, n::Int, l::Int, σ = identity, p = d -> MultivariateNormal(d,1); sharing = :all)
+function buildmixture(d::Int, n::Int, l::Int, σ = identity, p = d -> MvNormal(d,1f0); sharing = :all)
 	ns = fill(n, l)
 	σs = fill(σ, l)
 	noise = fill(0, l)
@@ -83,7 +83,7 @@ function buildmixture(d::Int, n::Int, l::Int, σ = identity, p = d -> Multivaria
 	end
 end
 
-function buildmixture(d::Int, n::Vector, l::Vector, noise::Vector = fill(0, length(n)),  p = d -> MultivariateNormal(d,1); sharing = :all)
+function buildmixture(d::Int, n::Vector, l::Vector, noise::Vector = fill(0, length(n)),  p = d -> MvNormal(d,1f0); sharing = :all)
 	if sharing == :all 
 		allsharedmixture(d, n, l, noise, p)
 	elseif sharing == :dense

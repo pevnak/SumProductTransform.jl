@@ -19,7 +19,7 @@ end
 """
 function SumNode(components::Vector) 
 	n = length(components); 
-	SumNode(components, fill(1/n, n))
+	SumNode(components, fill(Float32(1/n), n))
 end
 
 
@@ -29,6 +29,29 @@ Base.length(m::SumNode) = length(m.components[1])
 Flux.children(x::SumNode) = x.components
 Flux.mapchildren(f, x::SumNode) = f.(Flux.children(x))
 
+"""
+	pathlogpdf(p::SumNode, x, path::Vector{Vector{Int}})
+
+	logpdf of samples `x` calculated along the `path`, which determine only 
+	subset of models
+"""
+function pathlogpdf(p::SumNode, x, path) 
+	pathlogpdf(p.components[path[1]], x, path[2])
+end
+
+"""
+	samplepath(m)
+
+	samples path determining subset of the model
+"""
+function samplepath(m::SumNode) 
+	i = rand(1:length(m.components))
+	(i, samplepath(m.components[i]))
+end
+
+pathcount(m::SumNode) = mapreduce(pathcount, +, m.components)
+
+Base.rand(m::SumNode) = rand(m.components[sample(Weights(m.prior))])
 
 
 Zygote.@adjoint Flux.onehotbatch(y, n) = Flux.onehotbatch(y,n), Δ -> (nothing, nothing)
@@ -51,7 +74,6 @@ function Distributions.logpdf(m::SumNode, x)
 		return(logsumexp(log.(m.prior .+ 1f-8) .+ lkl, dims = 1)[:])
 	end
 end
-Distributions.logpdf(m::SumNode, x::Tuple) = logpdf(m, reshape(collect(x), :, 1))[1]
 
 
 """

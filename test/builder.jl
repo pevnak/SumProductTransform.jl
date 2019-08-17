@@ -37,6 +37,14 @@ end
 	end
 end
 
+@testset "number of path in a model" begin
+	noise = [0.5, 0.25, 0]
+	d = 10
+	for nc in [[2,2,2], [1,2,3], [3, 2, 1],]
+		model = buildmixture(d, nc,[identity, identity, identity], round.(Int,noise.*d); sharing = :all)
+		@test pathcount(model) == prod(nc)
+	end
+end
 
 @testset "testing model generators: different number of components in layers" begin
 	for (ks, σs)  in [([2,3,4], [identity, selu, tanh]), ([4,3,2], [tanh, selu, identity])]
