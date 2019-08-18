@@ -1,6 +1,7 @@
 using SumDenseProduct, Test
 include("builder.jl")
 include("productnode.jl")
+include("maxpath.jl")
 
 
 @testset "sampling" begin

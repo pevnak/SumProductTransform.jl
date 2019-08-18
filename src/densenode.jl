@@ -27,16 +27,23 @@ pathcount(m::DenseNode) = pathcount(m.p)
 
 samplepath(m::DenseNode) = samplepath(m.p)
 
+function mappath(m::DenseNode, x::AbstractMatrix{T}) where {T}
+	x, l = m.m((x,zero(T)))
+	lkl, path = mappath(m.p, x)
+	return(lkl .+ l[:], path)
+end
+
+
 Base.rand(m::DenseNode) = m.mi(rand(m.p))
 
 Base.show(io::IO, m::DenseNode{M,MI,P}) where {M,MI,P} = dsprint(io, m)
 function dsprint(io::IO, n::DenseNode; pad=[])
     c = COLORS[(length(pad)%length(COLORS))+1]
-    paddedprint(io, " $(n.m) →\n", color=c, pad=pad)
+    paddedprint(io, " $(n.m) → ", color=c)
     dsprint(io, n.p, pad=[pad; (c, "     ")])
 end
 function dsprint(io::IO, n::DenseNode{M,MI,P}; pad=[]) where {M,MI,P<:MvNormal}
     c = COLORS[(length(pad)%length(COLORS))+1]
-    paddedprint(io, " $(n.m) → MvNormal\n", color=c, pad=pad)
+    paddedprint(io, " $(n.m) → MvNormal\n", color=c)
 end
 

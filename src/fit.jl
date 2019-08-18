@@ -7,8 +7,7 @@ using IterTools, BSON
 """
 function StatsBase.fit!(model, X, batchsize::Int, maxsteps::Int, maxpath::Int; check = 1000, minimum_improvement = 1e-4, opt = ADAM(), debugfile = "", xval = X)
 	ps = Flux.params(model)
-	bestpath = [samplepath(model) for i in 1:size(X,2)]
-	gradfun = (pathcount(model) < maxpath) ? () -> fullgrad(model, X, batchsize, ps) : () -> samplinggrad(model, X, bestpath, batchsize, maxpath, ps)
+	gradfun = tunegrad(model, X, batchsize, maxpath, ps)
 	oldlkl = -mean(logpdf(model, xval))
 	i = 0;
 	train_time = 0.0
@@ -56,13 +55,46 @@ function samplinggrad(model, X, bestpath, batchsize, maxpath, ps)
 	gradient(() -> -mean(batchpathlogpdf(model, x, bestpath[idxs])), ps)
 end
 	
-function fullgrad(model, X, batchsize, ps)
+function exactgrad(model, X, batchsize, ps)
 	idxs = sample(1:size(X,2), batchsize, replace = false)
 	x = X[:, idxs]
-	gradient(() -> -mean(batchpathlogpdf(model, x, bestpath[idxs])), ps)
+	gradient(() -> -mean(logpdf(model, x)), ps)
 end
-	
 
+function exactpathgrad(model, X, batchsize, ps)
+	idxs = sample(1:size(X,2), batchsize, replace = false)
+	x = X[:, idxs]
+	lkl, path = mappath(model, x)
+	gradient(() -> -mean(batchpathlogpdf(model, x, path)), ps)
+end
+
+function tunegrad(model, X, batchsize, maxpath, ps)
+	bestpath = [samplepath(model) for i in 1:size(X,2)]
+	τ₁ = @elapsed samplinggrad(model, X, bestpath, batchsize, maxpath, ps)
+	println("compilation of samplinggrad: ", τ₁)
+	τ₁ = @elapsed samplinggrad(model, X, bestpath, batchsize, maxpath, ps)
+	println("execution of samplinggrad: ", τ₁)
+	τ₂ = @elapsed exactgrad(model, X, batchsize, ps)
+	println("compilation of exactgrad: ", τ₂)
+	τ₂ = @elapsed exactgrad(model, X, batchsize, ps)
+	println("execution of exactgrad: ", τ₂)
+	τ₃ = @elapsed exactpathgrad(model, X, batchsize, ps)
+	println("compilation of exactpathgrad: ", τ₃)
+	τ₃ = @elapsed exactpathgrad(model, X, batchsize, ps)
+	println("execution of exactpathgrad: ", τ₃)
+	i = argmin([τ₁, τ₂, τ₃])
+	if i == 1
+		println("using samplinggrad for calculation of the gradient")
+		return(() -> samplinggrad(model, X, bestpath, batchsize, maxpath, ps))
+	elseif i==2
+		println("using exactgrad for calculation of the gradient")
+		return(() -> exactgrad(model, X, batchsize, ps))
+	else
+		println("using exactpathgrad for calculation of the gradient")
+		return(() -> exactpathgrad(model, X, batchsize, ps))
+
+	end
+end
 
 function isnaninf(gs)
   for (k,v) in gs.grads

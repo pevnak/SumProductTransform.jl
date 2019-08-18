@@ -57,6 +57,8 @@ pathlogpdf(m, x, path) = logpdf(m, x)
 """
 samplepath(m) = tuple()
 
+mappath(m, x)= (logpdf(m,x), fill(tuple(), size(x, 2)))
+
 batchpathlogpdf(m, x, path) = map(i -> pathlogpdf(m, x[:,i:i], path[i])[1], 1:length(path))
 
 

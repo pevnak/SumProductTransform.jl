@@ -49,6 +49,19 @@ function samplepath(m::SumNode)
 	(i, samplepath(m.components[i]))
 end
 
+function mappath(m::SumNode, x)
+	r = map(c -> mappath(c, x) ,m.components)
+	lkl = transpose(hcat(map(s -> s[1], r)...))
+	y = Flux.onecold(softmax(lkl, dims = 1))
+	o = Flux.onehotbatch(y, 1:length(m.components))
+	o =  sum(o .* lkl, dims = 1)[:]
+	path = map(s -> s[2], r)
+	path = [(y[i], path[y[i]][i]) for i in 1:size(x,2)]
+	return(o, path)
+end
+
+
+
 pathcount(m::SumNode) = mapreduce(pathcount, +, m.components)
 
 Base.rand(m::SumNode) = rand(m.components[sample(Weights(m.prior))])
@@ -111,14 +124,14 @@ _priors(m::SumNode) = m.prior
 Base.show(io::IO, z::SumNode{T,C}) where {T,C} = dsprint(io, z)
 function dsprint(io::IO, n::SumNode; pad=[])
     c = COLORS[(length(pad)%length(COLORS))+1]
-    paddedprint(io, "Mixture\n", color=c, pad = pad)
+    paddedprint(io, "Mixture\n", color=c)
 
     m = length(n.components)
     for i in 1:(m-1)
-        paddedprint(io, "  ├── $(n.prior[i])\n", color=c, pad=pad)
+        paddedprint(io, "  ├── $(n.prior[i])", color=c, pad=pad)
         dsprint(io, n.components[i], pad=[pad; (c, "  │   ")])
     end
-    paddedprint(io, "  └── $(n.prior[end])\n", color=c, pad=pad)
+    paddedprint(io, "  └── $(n.prior[end])", color=c, pad=pad)
     dsprint(io, n.components[end], pad=[pad; (c, "      ")])
 end
 

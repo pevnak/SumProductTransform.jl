@@ -51,6 +51,17 @@ pathcount(m::ProductNode) = mapreduce(n -> pathcount(n), *, m.components)
 
 samplepath(m::ProductNode) = map(samplepath, m.components)
 
+function mappath(m::ProductNode, x)
+	o, path = mappath(m.components[1], x[m.dimensions[1],:])
+	path = map(s -> (s,), path)
+	for i in 2:length(m.components)
+		oo, pp = mappath(m.components[i], x[m.dimensions[i],:])
+		o .+= oo
+		path = map(s -> tuple(s[1]..., s[2]), zip(path, pp))
+	end
+	o, path
+end
+
 Base.rand(m::ProductNode) = vcat([rand(p) for p in m.components]...)
 
 
@@ -62,21 +73,21 @@ Flux.mapchildren(f, x::ProductNode) = f.(Flux.children(x))
 Base.show(io::IO, z::ProductNode) = dsprint(io, z)
 function dsprint(io::IO, n::ProductNode; pad=[])
     c = COLORS[(length(pad)%length(COLORS))+1]
-    paddedprint(io, "Product\n", color=c, pad = pad)
+    paddedprint(io, "Product\n", color=c)
 
     m = length(n.components)
     for i in 1:(m-1)
     	if typeof(n.components[i]) <: Distributions.MvNormal
     		paddedprint(io, "  ├── MvNormal\n", color=c, pad=pad)
     	else
-	        paddedprint(io, "  ├── \n", color=c, pad=pad)
+	        paddedprint(io, "  ├── ", color=c, pad=pad)
 	        dsprint(io, n.components[i], pad=[pad; (c, "  │   ")])
 	    end
     end
 	if typeof(n.components[end]) <: Distributions.MvNormal
 	    paddedprint(io, "  └──  MvNormal\n", color=c, pad=pad)
 	else
-	    paddedprint(io, "  └── \n", color=c, pad=pad)
+	    paddedprint(io, "  └── ", color=c, pad=pad)
 	    dsprint(io, n.components[end], pad=[pad; (c, "      ")])
 	end
 end
