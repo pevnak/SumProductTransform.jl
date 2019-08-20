@@ -49,18 +49,19 @@ function samplepath(m::SumNode)
 	(i, samplepath(m.components[i]))
 end
 
-function mappath(m::SumNode, x)
-	r = map(c -> mappath(c, x) ,m.components)
-	lkl = transpose(hcat(map(s -> s[1], r)...))
+function mappath(m::SumNode, x::AbstractArray{T}) where {T}
+	n = length(m.components)
+	lkl, path = Vector{Vector{T}}(undef, n), Vector{Any}(undef, n)
+	Threads.@threads for i in 1:n
+		lkl[i], path[i] = mappath(m.components[i], x)
+	end
+	lkl = transpose(hcat(lkl...))
 	y = Flux.onecold(softmax(lkl, dims = 1))
-	o = Flux.onehotbatch(y, 1:length(m.components))
+	o = Flux.onehotbatch(y, 1:n)
 	o =  sum(o .* lkl, dims = 1)[:]
-	path = map(s -> s[2], r)
 	path = [(y[i], path[y[i]][i]) for i in 1:size(x,2)]
 	return(o, path)
 end
-
-
 
 pathcount(m::SumNode) = mapreduce(pathcount, +, m.components)
 

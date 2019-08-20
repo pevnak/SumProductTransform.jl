@@ -9,11 +9,29 @@ svae_m2 = [0.92, 0.88, 0.92, 0.69, 0.94, 0.62, 0.82, 0.70, 0.83],
 vae_m1 =  [0.77, 0.70, 0.85, 0.57, 0.85, 0.50, 0.49, 0.51, 0.69])
 
 const resultsdir = filter(isdir,["/Users/tpevny/Work/Julia/results/datasets","/mnt/output/results/datasets","/opt/output/results/datasets"])[1];
+
+function collectfiles(sdir; white_list = :stats, valid_filetypes = "_stats.bson")
+	files = readdir(sdir);
+	files = filter(s -> endswith(s, valid_filetypes), files)
+	files = map(s -> joinpath(sdir, s), files)
+	map(files) do f
+		try 
+			BSON.@load joinpath(sdir, f) $(white_list)
+			return
+	end
+end
+
 function collectdir(problem)
 	res = collect_results(joinpath(resultsdir,problem,"sumdense"); white_list = [:stats], valid_filetypes = ["_stats.bson"])[:,1]
-	res = DataFrame(res)
-	res[:problem] = problem
-	res
+
+
+	# we need to do a manual reduction with missing values
+	df = DataFrame()
+	for k in mapreduce(keys, (u,v) -> union(u, v), res)
+		df[k] = map(r -> haskey(r, k) ? r[k] : missing, res)
+	end
+	df[:problem] = problem
+	df
 end
 
 function collectresults()

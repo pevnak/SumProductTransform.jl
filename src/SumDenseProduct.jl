@@ -33,6 +33,8 @@ log_normal(x,μ, σ2::T) where {T<:Number} = - sum((@. ((x - μ)^2)/σ2), dims=1
 #Let's do a little bit of function stealing
 Distributions.logpdf(p::MvNormal, x::AbstractMatrix) = log_normal(x)[:]
 
+batchlogpdf(p, x, bs::Int) = reduce(vcat, map(i -> logpdf(p, x[:,i]), Iterators.partition(1:size(x,2), bs)))
+
 
 """
     pathcount(m)
@@ -80,6 +82,6 @@ include("modelbuilders.jl")
 include("fit.jl")
 
 export SumNode, DenseNode, ProductNode
-export densesharedmixture, nosharedmixture, allsharedmixture, priors, updatelatent!, buildmixture, pathcount
+export densesharedmixture, nosharedmixture, allsharedmixture, priors, updatelatent!, buildmixture, pathcount, batchlogpdf
 
 end # module

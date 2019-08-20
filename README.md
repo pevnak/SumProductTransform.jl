@@ -12,8 +12,9 @@ In this work, we add a **Dense** node, which supports a non-linear transformatio
 Ricky T. Q. Chen, Jens Behrmann, David Duvenaud, Jörn-Henrik Jacobsen, 2019* and refenrences therein, but this is not implemented yet (PR welcomes).
 
 The model is trained using the standard SGD and its variations
+
 ### God, give me dataset!!!   MNIST
-```
+```julia
 using Flux, Flux.Data.MNIST, SumDenseProduct, IterTools, StatsBase, Distributions, Unitary
 using Images
 using Base.Iterators: partition

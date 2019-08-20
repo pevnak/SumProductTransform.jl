@@ -1,7 +1,7 @@
 using SumDenseProduct, Distributions, Unitary, Test
 using SumDenseProduct: mappath, pathlogpdf, batchpathlogpdf
 
-@testset begin "testing the mappath" begin
+@testset "testing the mappath" begin
 	d = 4
 	x = randn(d,10)
 	p = MvNormal(4,1)

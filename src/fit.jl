@@ -34,24 +34,30 @@ function StatsBase.fit!(model, X, batchsize::Int, maxsteps::Int, maxpath::Int; c
 	model
 end
 
-function samplepdf!(bestpdf, bestpath, model, x, repetitions::Int)
-	for i in 2:repetitions
-		path = samplepath(model)
-		o = pathlogpdf(model, x, path)
-		for j in 1:length(o)
-			if o[j] > bestpdf[j]
-				bestpath[j], bestpdf[j] = path, o[j]
-			end
-		end
+function samplepdf!(bestpath, model, x, repetitions::Int)
+	paths = [samplepath(model) for i in 1:repetitions]
+	logpdfs = similar(x, size(x,2), repetitions)
+	Threads.@threads for i in 1:repetitions
+		logpdfs[:,i] .= pathlogpdf(model, x, paths[i])
 	end
-	bestpdf, bestpath
+	y = mapslices(argmax, logpdfs, dims = 2)
+	o = [logpdfs[i, y[i]] for i in 1:size(x,2)]
+	path = [paths[y[i]] for i in 1:size(x,2)]
+
+	bestpdf = batchpathlogpdf(model, x, bestpath)
+	updatebestpath!(bestpdf, bestpath, o, path)
+end
+
+function updatebestpath!(bestpdf, bestpath, o, path)
+	mask = o .> bestpdf
+	bestpath[mask] = path[mask]
+	bestpath
 end
 
 function samplinggrad(model, X, bestpath, batchsize, maxpath, ps)
 	idxs = sample(1:size(X,2), batchsize, replace = false)
 	x = X[:, idxs]
-	bestpdf = batchpathlogpdf(model, x, bestpath[idxs])
-	bestpdf, bestpath[idxs] = SumDenseProduct.samplepdf!(bestpdf, bestpath[idxs], model, x, maxpath)
+	bestpath[idxs] = SumDenseProduct.samplepdf!(bestpdf, bestpath[idxs], model, x, maxpath)
 	gradient(() -> -mean(batchpathlogpdf(model, x, bestpath[idxs])), ps)
 end
 	

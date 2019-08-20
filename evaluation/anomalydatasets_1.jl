@@ -1,11 +1,11 @@
 using Distributed, ArgParse
 
-# s = ArgParseSettings()
-# @add_arg_table s begin
-#     ("--variant"; nargs = '*'; default=["fixed"]);
-#     ("--dataset"; nargs = '*'; default=[]);
-# end
-# settings = parse_args(ARGS, s; as_symbols=true)
+s = ArgParseSettings()
+@add_arg_table s begin
+    ("--repetition"; arg_type = Int; default=1);
+    ("--dataset"; nargs = '*'; default=[]);
+end
+settings = parse_args(ARGS, s; as_symbols=true)
 
 @everywhere begin
   push!(LOAD_PATH,"/home/ec2-user/julia/Pkg")
@@ -20,13 +20,13 @@ using Distributed, ArgParse
 
   include("exframework.jl")
 
-
   function randpars()
     modelparams = (batchsize = 100,
+      maxpath = 100,
       steps = rand([5000, 10000, 20000]),
       minimum_improvement =  1e-2,
       n = rand([2, 4, 8, 16]),
-      l = rand([1, 2, 3]),
+      l = rand([1, 2, 3, 4]),
       σ = rand([identity]),
       sharing = rand([:dense, :all, :none]))
   end
@@ -35,7 +35,7 @@ using Distributed, ArgParse
     n, l, σ, sharing = p.n, p.l, p.σ, p.sharing
     d = size(X, 1)
     model = buildmixture(d, n, l, σ; sharing = sharing)
-    (fit!(model, X, p.batchsize, p.steps; minimum_improvement = p.minimum_improvement, opt = ADAM(), debugfile = "debug_$(myid()).bson"), p)
+    (fit!(model, X, p.batchsize, p.steps, p.maxpath; minimum_improvement = p.minimum_improvement, opt = ADAM(), debugfile = "debug_$(myid()).bson"), p)
   end
 
 
@@ -47,8 +47,19 @@ using Distributed, ArgParse
     anomalyexperiment(x -> fit(x, modelparams), dataset , joinpath(odir,dataset,"sumdense",ofname), aparam = (type = "easy", polution = 0.1, variation = "low"), repetition = repetition)
     return(nothing)
   end
+
+  function reevaluate(dataset)
+    sdir = joinpath(odir,dataset,"sumdense")
+    files = readdir(sdir);
+    for r in 1:5
+      map(filter(s -> endswith(s, "_$(r)_model.jls"), files)) do f 
+        reevaluate(dataset, joinpath(sdir, s), repetition = r)
+      end
+    end
+  end
 end
 
-pmap(p -> runexp(p[1], p[2]), Iterators.product(datasets, 1:5,1:100))
+settings[:dataset] = isempty(settings[:dataset]) ? datasets : settings[:dataset]
+pmap(p -> runexp(p[1], settings[:repetition]), Iterators.product(settings[:dataset],1:100))
 
 
