@@ -75,6 +75,7 @@ function priors(m)
 end
 
 
+include("threadedgrads.jl")
 include("sumnode.jl")
 include("densenode.jl")
 include("productnode.jl")

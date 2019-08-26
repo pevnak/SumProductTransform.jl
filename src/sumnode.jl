@@ -91,13 +91,14 @@ end
 
 
 """
-	updatelatent!(m::SumNode, x)
+	updatelatent!(m::SumNode, x, bs::Int = typemax(Int))
 
-	estimate the probability of a component in `m` using data in `x`
+	estimate the probability of a component in `m` using data in `x`.
+	if `bs < size(x,2)`, then the update is calculated part by part to save memory
 """
-function updatelatent!(m::SumNode, x)
+function updatelatent!(m::SumNode, x, bs::Int = typemax(Int))
 	zerolatent!(m);
-	_updatelatent!(m::SumNode, x);
+	foreach(i -> _updatelatent!(m, x[:, i]), Iterators.partition(1:size(x,2),bs))
 	normalizelatent!(m);
 end
 

@@ -1,5 +1,5 @@
 # rsync -avz aws-ecs:/mnt/output/results/datasets ~/Work/Julia/results/
-using DrWatson, BSON, DataFrames, PrettyTables, Crayons
+using DrWatson, BSON, DataFrames, PrettyTables, Crayons, Statistics
 
 priorart = DataFrame(
 dataset = ["breast-cancer-wisconsin", "cardiotocography", "magic-telescope", "pendigits", "pima-indians", "wall-following-robot", "waveform-1", "waveform-2", "yeast"],
@@ -10,34 +10,27 @@ vae_m1 =  [0.77, 0.70, 0.85, 0.57, 0.85, 0.50, 0.49, 0.51, 0.69])
 
 const resultsdir = filter(isdir,["/Users/tpevny/Work/Julia/results/datasets","/mnt/output/results/datasets","/opt/output/results/datasets"])[1];
 
-function collectfiles(sdir; white_list = :stats, valid_filetypes = "_stats.bson")
-	files = readdir(sdir);
-	files = filter(s -> endswith(s, valid_filetypes), files)
-	files = map(s -> joinpath(sdir, s), files)
-	map(files) do f
-		try 
-			BSON.@load joinpath(sdir, f) $(white_list)
-			return
-	end
-end
-
 function collectdir(problem)
-	res = collect_results(joinpath(resultsdir,problem,"sumdense"); white_list = [:stats], valid_filetypes = ["_stats.bson"])[:,1]
-
+	# res = collect_results(joinpath(resultsdir,problem,"sumdense"); white_list = [:stats], valid_filetypes = ["_stats.bson"])[:,1]
+	files = filter(s ->endswith(s,"_stats.bson"),readdir(joinpath(resultsdir,problem,"sumdense")))
+	res = map(s -> deserialize(joinpath(resultsdir, problem, "sumdense", s)), files)
+	res = filter(s -> typeof(s) <: NamedTuple, res)
 
 	# we need to do a manual reduction with missing values
 	df = DataFrame()
-	for k in mapreduce(keys, (u,v) -> union(u, v), res)
-		df[k] = map(r -> haskey(r, k) ? r[k] : missing, res)
+	# for k in mapreduce(keys, (u,v) -> union(u, v), res)
+	for k in keys(res[1])
+		df[!, k] = map(r -> haskey(r, k) ? r[k] : missing, res)
 	end
-	df[:problem] = problem
+	df[!, :problem] .= problem
 	df
 end
 
 function collectresults()
-	problems = readdir(resultsdir);
-	problems = filter(s -> isdir(joinpath(resultsdir, s,"sumdense")), problems); 
-	problems = filter(s -> !isempty(readdir((joinpath(resultsdir, s,"sumdense")))), problems); 
+	# problems = readdir(resultsdir);
+	# problems = filter(s -> isdir(joinpath(resultsdir, s,"sumdense")), problems); 
+	# problems = filter(s -> !isempty(readdir((joinpath(resultsdir, s,"sumdense")))), problems); 
+	problems = priorart[:dataset]
 	df = map(collectdir, problems)
 	reduce(vcat, df)
 end
@@ -45,8 +38,10 @@ end
 
 function show()
 	df = collectresults()
-	dflkl = by(df, :dataset, dff -> DataFrame(SumDenseLkl = dff[argmax(dff[:test_lkl]),:test_auc]))
-	dfauc = by(df, :dataset, dff -> DataFrame(SumDenseAUC = dff[argmax(dff[:train_auc]),:test_auc]))
+	dflkl = by(df, [:dataset, :repetition], dff -> DataFrame(SumDenseLkl = dff[argmax(dff[:test_lkl]),:test_auc], n = length(dff)))
+	dflkl = by(dflkl, :dataset, dff -> DataFrame(SumDenseLkl = mean(dff[:SumDenseLkl])))
+	dfauc = by(df, [:dataset, :repetition], dff -> DataFrame(SumDenseAUC = dff[argmax(dff[:train_auc]),:test_auc], n = length(dff)))
+	dfauc = by(dfauc, :dataset, dff -> DataFrame(SumDenseAUC = mean(dff[:SumDenseAUC])))
 	dff = join(dflkl,dfauc, on = :dataset)
 	dff = join(dff,priorart, on = :dataset)
 	h1 = Highlighter(

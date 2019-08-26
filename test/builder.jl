@@ -24,15 +24,17 @@ end
 
 @testset "testing model generators: noise components" begin
 	for k in 1:3
-		d, n, σs, noise = 4, [2,2], [identity, identity], [k,0]
-		for m in [nosharedmixture(d, n, σs , noise), allsharedmixture(d, n, σs , noise), densesharedmixture(d, n, σs , noise)]
-			@test length(m) == d
-			if k > 0
-				@test length(m.components[1].p[2]) == d - k
-			else
-				@test length(m.components[1].p) == d
+		d, n, σs, noise = 3*k, [2,2], [identity, identity], [k,0]
+		for noise in [[k,k],[k,0]]
+			for m in [nosharedmixture(d, n, σs , noise), allsharedmixture(d, n, σs , noise), densesharedmixture(d, n, σs , noise)]
+				@test length(m) == d
+				if k > 0
+					@test length(m.components[1].p[2]) == d - k
+				else
+					@test length(m.components[1].p) == d
+				end
+				@test logpdf(m, randn(d,10)) != nothing
 			end
-			@test logpdf(m, randn(d,10)) != nothing
 		end
 	end
 end

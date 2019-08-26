@@ -34,6 +34,7 @@ function allsharedmixture(d::Int, ns::Vector{Int}, σs::Vector, noise::Vector, p
 	@assert length(ns) == length(σs) == length(noise)
 	n, σ, noisedim = ns[end], σs[end], noise[end]
 	noisedim > 0 && @warn "We ignore the noise in last layer (they are independent anyway)"
+	noise[end] = 0
 	truedim = d - sum(noise)
 	m = SumNode([DenseNode(Unitary.SVDDense(truedim, σ), p(truedim)) for i in 1:n])
 	for i in length(ns)-1:-1:1
@@ -55,6 +56,7 @@ function densesharedmixture(d::Int, ns::Vector{Int}, σs::Vector, noise::Vector,
 	@assert length(ns) == length(σs) == length(noise)
 	n, σ, noisedim = ns[end], σs[end], noise[end]
 	noisedim > 0 && @warn "We ignore the noise in last layer (they are independent anyway)"
+	noise[end] = 0
 	truedim = d - sum(noise)
 	non_linear_part = [DenseNode(Unitary.SVDDense(truedim, σ), p(truedim)) for i in 1:n];
 	for i in length(ns)-1:-1:1
