@@ -1,5 +1,5 @@
 # rsync -avz aws-ecs:/mnt/output/results/datasets ~/Work/Julia/results/
-using DrWatson, BSON, DataFrames, PrettyTables, Crayons, Statistics
+using DrWatson, BSON, DataFrames, PrettyTables, Crayons, Statistics, Serialization
 
 priorart = DataFrame(
 dataset = ["breast-cancer-wisconsin", "cardiotocography", "magic-telescope", "pendigits", "pima-indians", "wall-following-robot", "waveform-1", "waveform-2", "yeast"],
@@ -10,11 +10,37 @@ vae_m1 =  [0.77, 0.70, 0.85, 0.57, 0.85, 0.50, 0.49, 0.51, 0.69])
 
 const resultsdir = filter(isdir,["/Users/tpevny/Work/Julia/results/datasets","/mnt/output/results/datasets","/opt/output/results/datasets"])[1];
 
-function collectdir(problem)
-	# res = collect_results(joinpath(resultsdir,problem,"sumdense"); white_list = [:stats], valid_filetypes = ["_stats.bson"])[:,1]
+function fixdir(problem)
 	files = filter(s ->endswith(s,"_stats.bson"),readdir(joinpath(resultsdir,problem,"sumdense")))
-	res = map(s -> deserialize(joinpath(resultsdir, problem, "sumdense", s)), files)
-	res = filter(s -> typeof(s) <: NamedTuple, res)
+	torepair = filter(files) do f
+		repair = false
+		try
+			BSON.@load joinpath(resultsdir, problem, "sumdense", f) stats
+		catch
+			repair = true
+		end 
+		repair
+	end
+
+	isempty(torepair) && return(nothing)
+
+	for f in torepair
+		println("fixing: ",problem,"/",f)
+		ff = joinpath(resultsdir, problem, "sumdense", f)
+		fs = replace(ff, "_stats.bson" => "_stats.jls")
+		stats = deserialize(ff)
+		serialize(fs, stats)
+		BSON.@save ff stats 
+	end
+
+end
+
+function collectdir(problem)
+	fixdir(problem)
+	res = collect_results(joinpath(resultsdir,problem,"sumdense"); white_list = [:stats], valid_filetypes = ["_stats.bson"])[:,1]
+	# files = filter(s ->endswith(s,"_stats.bson"),readdir(joinpath(resultsdir,problem,"sumdense")))
+	# res = map(s -> deserialize(joinpath(resultsdir, problem, "sumdense", s)), files)
+	# res = filter(s -> typeof(s) <: NamedTuple, res)
 
 	# we need to do a manual reduction with missing values
 	df = DataFrame()
@@ -34,6 +60,15 @@ function collectresults()
 	df = map(collectdir, problems)
 	reduce(vcat, df)
 end
+
+function sensitivity(df::DataFrame)
+	for p in [:n, :l, :sharing, :steps]
+		dff = by(df, [p, :repetition], dff -> DataFrame(test_auc = maximum(dff[:test_auc])))
+		dff = by(dff, p, dff -> DataFrame(test_auc = mean(dff[:test_auc])))
+		pretty_table(sort(dff, :test_auc))
+	end
+end
+sensitivity(problem::String) = sensitivity(collectdir(problem))
 
 
 function show()

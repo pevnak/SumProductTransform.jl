@@ -4,12 +4,12 @@ using Base.Iterators: partition
 using Flux: throttle, train!, Params
 using EvalCurves, DrWatson, BSON
 using SumDenseProduct: samplepath
-# using Plots
 
-# plotly();
+using Plots
+plotly();
+showimg(x) = heatmap(reshape(x, round(Int,sqrt(49)),round(Int,sqrt(49))))
 
 
-# showimg(x) = heatmap(reshape(x, 28,28))
 
 # imgs = MNIST.images();
 # imgs = map(x -> imresize(x, ratio = 1/4), imgs);
@@ -55,6 +55,26 @@ function experiment()
 	end
 end
 experiment()
+
+
+function show()
+	odir = "/mnt/output/results/datasets/mnist/sumdense"
+	foreach(filter(s -> endswith(s,"_logpdf.jls"),readdir(odir))) do f 
+		o = deserialize(joinpath(odir, f));
+		s = replace(f, "exactpath_ratio=4_" => "")
+		s = replace(s, "_logpdf.jls" => "")
+		println(mean(o), "  ",s)
+	end
+end
+
+function showsamples()
+	mdir = "/Users/tpevny/Work/Julia/results/datasets/mnist/sumdense/"
+	f = "exactpath_ratio=4_nc=10-10-10_noise=0.0-0.0-0.0"
+	println("logpdf: ",mean(deserialize(joinpath(mdir, f*"_logpdf.jls" ))))
+
+	model = deserialize(joinpath(mdir, f*"_model.jls"))
+end
+
 #noise, nc = [0.25, 0.25, 0.25, 0], [10,10,10, 10], ratio 1/4
 # 								16 threads		1 thread
 # compilation of samplinggrad: 	0.962394178		32.596927812
