@@ -1,5 +1,5 @@
 using Distributed, ArgParse
-
+include("setpath.jl")
 s = ArgParseSettings()
 @add_arg_table s begin
     ("--repetition"; arg_type = Int; default=1);
@@ -8,15 +8,14 @@ end
 settings = parse_args(ARGS, s; as_symbols=true)
 
 @everywhere begin
-  push!(LOAD_PATH,"/home/ec2-user/julia/Pkg")
   using ADatasets, SumDenseProduct, Flux, IterTools, StatsBase, Distributions
   using ADatasets: makeset, loaddataset, subsampleanomalous
   using Flux: throttle, train!, Params
   using EvalCurves, DrWatson, BSON
 
   datasets = ["breast-cancer-wisconsin", "cardiotocography", "magic-telescope", "pendigits", "pima-indians", "wall-following-robot", "waveform-1", "waveform-2", "yeast"]
-  idir = filter(isdir,["/Users/tpevny/Work/Data/datasets/numerical","/mnt/output/data/datasets/numerical","/opt/output/data/datasets/numerical"])[1];
-  odir = filter(isdir,["/Users/tpevny/Work/Julia/results/datasets","/mnt/output/results/datasets","/opt/output/results/datasets"])[1];
+  idir = filter(isdir,["/Users/tpevny/Work/Data/datasets/numerical","/home/pevnytom/Data/numerical"])[1];
+  odir = filter(isdir,["/Users/tpevny/Work/Julia/results/datasets","/home/pevnytom/Data/results/datasets"])[1];
 
   include("exframework.jl")
 
@@ -44,7 +43,7 @@ settings = parse_args(ARGS, s; as_symbols=true)
     ofname = "ex1_"*savename(modelparams)*replace("_$(modelparams.σ)","NNlib." => "")
     isfile(joinpath(odir,dataset,"sumdense",ofname*"_model.bson")) && return(nothing)
     !isdir(joinpath(odir,dataset,"sumdense")) && mkpath(joinpath(odir,dataset,"sumdense"))
-    anomalyexperiment(x -> fit(x, modelparams), dataset , joinpath(odir,dataset,"sumdense",ofname), aparam = (type = "easy", polution = 0.1, variation = "low"), repetition = repetition)
+    anomalyexperiment(x -> fit(x, modelparams), dataset , joinpath(odir,dataset,"sumdense",ofname), aparam = (type = "easy", polution = 0.0, variation = "low"), repetition = repetition)
     return(nothing)
   end
 
@@ -60,6 +59,6 @@ settings = parse_args(ARGS, s; as_symbols=true)
 end
 
 settings[:dataset] = isempty(settings[:dataset]) ? datasets : settings[:dataset]
-pmap(p -> runexp(p[1], settings[:repetition]), Iterators.product(settings[:dataset],1:100))
+map(p -> runexp(p[1], settings[:repetition]), Iterators.product(settings[:dataset],1:100))
 
 
