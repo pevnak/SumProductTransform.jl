@@ -89,37 +89,23 @@ function Distributions.logpdf(m::SumNode, x)
 	end
 end
 
-
-"""
-	updatelatent!(m::SumNode, x, bs::Int = typemax(Int))
-
-	estimate the probability of a component in `m` using data in `x`.
-	if `bs < size(x,2)`, then the update is calculated part by part to save memory
-"""
-function updatelatent!(m::SumNode, x, bs::Int = typemax(Int))
-	zerolatent!(m);
-	foreach(i -> _updatelatent!(m, x[:, i]), Iterators.partition(1:size(x,2),bs))
-	normalizelatent!(m);
-end
-
-zerolatent!(m) = nothing
 function zerolatent!(m::SumNode)
 	m.prior .= 0 
 	foreach(zerolatent!, m.components)
 	nothing
 end
 
-normalizelatent!(m) = nothing
 function normalizelatent!(m::SumNode)
-	m.prior ./= max(sum(m.prior), 1)  
+	m.prior ./= max(sum(m.prior), 1) 
+	foreach(normalizelatent!, m.components) 
 end
 
-function _updatelatent!(m::SumNode, x)
-	lkl = transpose(hcat(map(c -> logpdf(c, x),m.components)...))
-	y = Flux.onecold(softmax(dropgrad(lkl), dims = 1))
-	o = Flux.onehotbatch(y, 1:length(m.components))
-	m.prior .+= sum(o, dims = 2)[:]
+function _updatelatent!(m::SumNode, path)
+	component = path[1]
+	m.prior[component] += 1
+	_updatelatent!(m.components[component], path[2])
 end
+
 _priors(m::SumNode) = m.prior
 
 

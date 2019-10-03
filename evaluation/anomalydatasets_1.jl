@@ -8,7 +8,7 @@ end
 settings = parse_args(ARGS, s; as_symbols=true)
 
 @everywhere begin
-  using ADatasets, SumDenseProduct, Flux, IterTools, StatsBase, Distributions
+  using ADatasets, SumDenseProduct, Flux, IterTools, StatsBase, Distributions, Unitary
   using ADatasets: makeset, loaddataset, subsampleanomalous
   using Flux: throttle, train!, Params
   using EvalCurves, DrWatson, BSON
@@ -22,6 +22,7 @@ settings = parse_args(ARGS, s; as_symbols=true)
   function randpars()
     modelparams = (batchsize = 100,
       maxpath = 100,
+      firstdense = rand([true,false]),
       steps = rand([5000, 10000, 20000]),
       minimum_improvement =  1e-2,
       n = rand([2, 4, 8, 16]),

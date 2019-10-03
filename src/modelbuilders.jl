@@ -70,11 +70,11 @@ end
 densesharedmixture(d, ns::Vector, σs::Vector) = densesharedmixture(d, ns, σs, fill(0, length(ns)), d -> MvNormal(d,1f0))
 densesharedmixture(d::Int, n::Int, l::Int, σ = identity) = densesharedmixture(d, fill(n,l), fill(σ,l))
 
-function buildmixture(d::Int, n::Int, l::Int, σ = identity, p = d -> MvNormal(d,1f0); sharing = :all)
+function buildmixture(d::Int, n::Int, l::Int, σ = identity, p = d -> MvNormal(d,1f0); sharing = :all, firstdense = false)
 	ns = fill(n, l)
 	σs = fill(σ, l)
 	noise = fill(0, l)
-	if sharing == :all 
+	model = if sharing == :all 
 		allsharedmixture(d, ns, σs, noise, p)
 	elseif sharing == :dense
 		densesharedmixture(d, ns, σs, noise, p)
@@ -83,10 +83,11 @@ function buildmixture(d::Int, n::Int, l::Int, σ = identity, p = d -> MvNormal(d
 	else 
 		@error "unknown sharing $(sharing)"
 	end
+    model = firstdense ? DenseNode(Unitary.SVDDense(d, σ),model) : model
 end
 
-function buildmixture(d::Int, n::Vector, l::Vector, noise::Vector = fill(0, length(n)),  p = d -> MvNormal(d,1f0); sharing = :all)
-	if sharing == :all 
+function buildmixture(d::Int, n::Vector, l::Vector, noise::Vector = fill(0, length(n)),  p = d -> MvNormal(d,1f0); sharing = :all, firstdense = false)
+	model = if sharing == :all 
 		allsharedmixture(d, n, l, noise, p)
 	elseif sharing == :dense
 		densesharedmixture(d, n, l, noise, p)
@@ -95,4 +96,5 @@ function buildmixture(d::Int, n::Vector, l::Vector, noise::Vector = fill(0, leng
 	else 
 		@error "unknown sharing $(sharing)"
 	end
+	model = firstdense ? DenseNode(Unitary.SVDDense(d, σ),model) : model
 end

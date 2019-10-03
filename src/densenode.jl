@@ -23,8 +23,10 @@ function pathlogpdf(m::DenseNode, x::AbstractMatrix{T}, path) where {T}
 end
 
 pathcount(m::DenseNode) = pathcount(m.p)
-
 samplepath(m::DenseNode) = samplepath(m.p)
+_updatelatent!(m::DenseNode, path) = _updatelatent!(m.p, path)
+zerolatent!(m::DenseNode) = zerolatent!(m.p)
+normalizelatent!(m::DenseNode) = normalizelatent!(m.p)
 
 function mappath(m::DenseNode, x::AbstractMatrix{T}) where {T}
 	x, l = m.m((x,zero(T)))

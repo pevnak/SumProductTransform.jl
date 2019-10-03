@@ -16,6 +16,7 @@ function StatsBase.fit!(model, X, batchsize::Int, maxsteps::Int, maxpath::Int; c
 	likelihood_time = 0.0
 	history = MVHistory()
 	while true
+		check = min(check, maxsteps - i)
 		train_time += @elapsed for j in 1:check
 			gs = gradfun()
 			gs == nothing && @warn "nothing in gradient"
@@ -25,7 +26,7 @@ function StatsBase.fit!(model, X, batchsize::Int, maxsteps::Int, maxpath::Int; c
 
 		update_time = @elapsed updatelatent!(model, X, batchsize);
 		likelihood_time = @elapsed newlkl = -mean(batchlogpdf(model, xval, batchsize))
-		println(i,": likelihood = ", -newlkl, "  time per iteration: ", train_time / i,"s "update time",update_time,"likelihood time: ",likelihood_time)
+		println(i,": likelihood = ", -newlkl, "  time per iteration: ", train_time / i,"s update time: ",update_time,"s likelihood time: ",likelihood_time)
 		push!(history, :likelihood, i, newlkl)
 		push!(history, :traintime, i, train_time)
 		push!(history, :likelihoodtime, i, likelihood_time)
@@ -47,17 +48,20 @@ end
 function samplepdf!(bestpath, model, x, repetitions::Int, pickbest = true)
 	paths = [samplepath(model) for i in 1:repetitions]
 	logpdfs = similar(x, size(x,2), repetitions)
-	Threads.@threads for i in 1:repetitions
+	@timeit to "pathlogpdf" Threads.@threads for i in 1:repetitions
 		logpdfs[:,i] .= pathlogpdf(model, x, paths[i])
 	end
 
-
-	y = mapslices(argmax, logpdfs, dims = 2)
-	o = [logpdfs[i, y[i]] for i in 1:size(x,2)]
-	path = [paths[y[i]] for i in 1:size(x,2)]
-	bestpdf = batchpathlogpdf(model, x, bestpath)
-	updatebestpath!(bestpdf, bestpath, o, path)
-	(pickbest) ? bestpath :  [paths[sample(1:repetitions, Weights(softmax(logpdfs[:,i])))] for i in 1:size(x,2)]
+	if pickbest 		
+		y = mapslices(argmax, logpdfs, dims = 2)
+		o = [logpdfs[i, y[i]] for i in 1:size(x,2)]
+		path = [paths[y[i]] for i in 1:size(x,2)]
+		@timeit to "batchpathlogpdf" bestpdf = batchpathlogpdf(model, x, bestpath)
+		updatebestpath!(bestpdf, bestpath, o, path)
+		return(bestpath)
+	else 
+		return([paths[sample(1:repetitions, Weights(softmax(logpdfs[:,i])))] for i in 1:size(x,2)])
+	end
 end
 
 function updatebestpath!(bestpdf, bestpath, o, path)
@@ -66,30 +70,31 @@ function updatebestpath!(bestpdf, bestpath, o, path)
 end
 
 function samplinggrad(model, X, bestpath, batchsize, maxpath, ps, pickbest = true)
-	idxs = sample(1:size(X,2), batchsize, replace = false)
-	x = X[:, idxs]
-	t1 = @elapsed path = SumDenseProduct.samplepdf!(bestpath[idxs], model, x, maxpath, pickbest)
-	t2 = @elapsed gr = gradient(() -> -mean(batchpathlogpdf(model, x, bestpath[idxs])), ps)
-	# t2 = @elapsed gr = threadedgrad(i -> -sum(batchpathlogpdf(model, x[:,i], path[i])), ps, size(x,2))
-	# println(" sampling: ",t1,"  gradient: ",t2)
-	gr
+	@timeit to "samplinggrad" begin
+		idxs = sample(1:size(X,2), batchsize, replace = false)
+		x = X[:, idxs]
+		@timeit to "samplepdf" path = SumDenseProduct.samplepdf!(view(bestpath,idxs), model, x, maxpath, pickbest)
+		bp = bestpath[idxs]
+		@timeit to "gradient" threadedgrad(i -> -sum(batchpathlogpdf(model, x[:,i], bp[i])), ps, size(x,2))
+	end
 end
 	
 function exactgrad(model, X, batchsize, ps)
-	idxs = sample(1:size(X,2), batchsize, replace = false)
-	x = X[:, idxs]
-	# gradient(() -> -mean(logpdf(model, x)), ps)
-	threadedgrad(i -> -sum(logpdf(model, x[:,i])), ps, size(x,2))
+	@timeit to "exactgrad" begin
+		idxs = sample(1:size(X,2), batchsize, replace = false)
+		x = X[:, idxs]
+		# gradient(() -> -mean(logpdf(model, x)), ps)
+		@timeit to "gradient" threadedgrad(i -> -sum(logpdf(model, x[:,i])), ps, size(x,2))
+	end
 end
 
 function exactpathgrad(model, X, batchsize, ps)
-	idxs = sample(1:size(X,2), batchsize, replace = false)
-	x = X[:, idxs]
-	t1 = @elapsed lkl, path = mappath(model, x)
-	# t2 = @elapsed gr  = gradient(() -> -mean(batchpathlogpdf(model, x, path)), ps)
-	t2 = @elapsed gr  = threadedgrad(i -> -sum(batchpathlogpdf(model, x[:,i], path[i])), ps, size(x,2))
-	# println(" bestpath: ",t1,"  gradient: ",t2)
-	gr
+	@timeit to "exactpathgrad" begin
+		idxs = sample(1:size(X,2), batchsize, replace = false)
+		x = X[:, idxs]
+		@timeit to "mappath" lkl, path = mappath(model, x)
+		@timeit to "gradient" threadedgrad(i -> -sum(batchpathlogpdf(model, x[:,i], path[i])), ps, size(x,2))
+	end
 end
 
 function tunegrad(model, X, batchsize, maxpath, ps, gradmethod = [:exact, :sampling, :exactpathgrad])

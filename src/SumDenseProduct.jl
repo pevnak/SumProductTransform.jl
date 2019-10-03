@@ -81,6 +81,7 @@ include("densenode.jl")
 include("productnode.jl")
 include("modelbuilders.jl")
 include("fit.jl")
+include("updatelatent.jl")
 
 export SumNode, DenseNode, ProductNode
 export densesharedmixture, nosharedmixture, allsharedmixture, priors, updatelatent!, buildmixture, pathcount, batchlogpdf

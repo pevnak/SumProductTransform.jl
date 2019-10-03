@@ -48,8 +48,15 @@ function pathlogpdf(p::ProductNode, x, path)
 end
 
 pathcount(m::ProductNode) = mapreduce(n -> pathcount(n), *, m.components)
-
 samplepath(m::ProductNode) = map(samplepath, m.components)
+zerolatent!(m::ProductNode) = foreach(zerolatent!, m.components)
+function _updatelatent!(m::ProductNode, path)
+	for i in 1:length(m.components)
+		_updatelatent!(m.components[i], path[i])
+	end
+end
+normalizelatent!(m::ProductNode) = foreach(normalizelatent!, m.components)
+
 
 function mappath(m::ProductNode, x)
 	o, path = mappath(m.components[1], x[m.dimensions[1],:])
