@@ -10,7 +10,7 @@ function anomalyexperiment(fit, dataset, oprefix; aparam = (type = "easy", polut
   trndata, tstdata, clusterdness = makeset(loaddataset(dataset, aparam.type ,idir)..., dataparts[1], aparam.variation, repetition)
 
   X = subsampleanomalous(trndata, aparam.polution)[1]
-  model, modelparams = fit(X)
+  model, history, modelparams = fit(X)
   BSON.@save oprefix*"_model.bson" model
   serialize(oprefix*"_model.jls",model)
   stats = merge(supervisedstats(model, trndata, "train_"),

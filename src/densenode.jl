@@ -28,7 +28,7 @@ _updatelatent!(m::DenseNode, path) = _updatelatent!(m.p, path)
 zerolatent!(m::DenseNode) = zerolatent!(m.p)
 normalizelatent!(m::DenseNode) = normalizelatent!(m.p)
 
-function mappath(m::DenseNode, x::AbstractMatrix{T}) where {T}
+function _mappath(m::DenseNode, x::AbstractMatrix{T}) where {T}
 	x, l = m.m((x,zero(T)))
 	lkl, path = mappath(m.p, x)
 	return(lkl .+ l[:], path)

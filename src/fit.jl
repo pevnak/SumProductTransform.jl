@@ -60,7 +60,7 @@ function samplepdf!(bestpath, model, x, repetitions::Int, pickbest = true)
 		updatebestpath!(bestpdf, bestpath, o, path)
 		return(bestpath)
 	else 
-		return([paths[sample(1:repetitions, Weights(softmax(logpdfs[:,i])))] for i in 1:size(x,2)])
+		return([paths[sample(1:repetitions, Weights(softmax(logpdfs[i,:])))] for i in 1:size(x,2)])
 	end
 end
 

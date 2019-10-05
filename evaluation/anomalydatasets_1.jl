@@ -3,6 +3,7 @@ include("setpath.jl")
 s = ArgParseSettings()
 @add_arg_table s begin
     ("--repetition"; arg_type = Int; default=1);
+    ("--polution"; arg_type = Float64; default=0.0);
     ("--dataset"; nargs = '*'; default=[]);
 end
 settings = parse_args(ARGS, s; as_symbols=true)
@@ -21,41 +22,32 @@ settings = parse_args(ARGS, s; as_symbols=true)
 
   function randpars()
     modelparams = (batchsize = 100,
-      maxpath = 100,
+      maxpath = rand([50,100,200]),
       firstdense = rand([true,false]),
       steps = rand([5000, 10000, 20000]),
       minimum_improvement =  1e-2,
       n = rand([2, 4, 8, 16]),
       l = rand([1, 2, 3, 4]),
       σ = rand([identity]),
-      sharing = rand([:dense, :all, :none]))
+      sharing = rand([:dense, :all, :none]),
+      gradmethod = rand([:sampling, :bestsampling, :exactpath]))
   end
 
   function fit(X, p)
-    n, l, σ, sharing = p.n, p.l, p.σ, p.sharing
     d = size(X, 1)
-    model = buildmixture(d, n, l, σ; sharing = sharing)
-    (fit!(model, X, p.batchsize, p.steps, p.maxpath; minimum_improvement = p.minimum_improvement, opt = ADAM(), debugfile = "debug_$(myid()).bson"), p)
+    model = buildmixture(d, p.n, p.l, p.σ; sharing = p.sharing, firstdense = p.firstdense)
+    history = fit!(model, X, p.batchsize, p.steps, p.maxpath; gradmethod = p.gradmethod, minimum_improvement = p.minimum_improvement, opt = ADAM())
+    (model, p)
   end
 
 
-  function runexp(dataset, repetition)
+  function runexp(dataset, repetition, polution)
     modelparams = randpars()
     ofname = "ex1_"*savename(modelparams)*replace("_$(modelparams.σ)","NNlib." => "")
     isfile(joinpath(odir,dataset,"sumdense",ofname*"_model.bson")) && return(nothing)
     !isdir(joinpath(odir,dataset,"sumdense")) && mkpath(joinpath(odir,dataset,"sumdense"))
-    anomalyexperiment(x -> fit(x, modelparams), dataset , joinpath(odir,dataset,"sumdense",ofname), aparam = (type = "easy", polution = 0.0, variation = "low"), repetition = repetition)
+    anomalyexperiment(x -> fit(x, modelparams), dataset , joinpath(odir,dataset,"sumdense",ofname), aparam = (type = "easy", polution = polution, variation = "low"), repetition = repetition)
     return(nothing)
-  end
-
-  function reevaluate(dataset)
-    sdir = joinpath(odir,dataset,"sumdense")
-    files = readdir(sdir);
-    for r in 1:5
-      map(filter(s -> endswith(s, "_$(r)_model.jls"), files)) do f 
-        reevaluate(dataset, joinpath(sdir, s), repetition = r)
-      end
-    end
   end
 end
 

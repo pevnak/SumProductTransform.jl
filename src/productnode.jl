@@ -58,7 +58,7 @@ end
 normalizelatent!(m::ProductNode) = foreach(normalizelatent!, m.components)
 
 
-function mappath(m::ProductNode, x)
+function _mappath(m::ProductNode, x)
 	o, path = mappath(m.components[1], x[m.dimensions[1],:])
 	path = map(s -> (s,), path)
 	for i in 2:length(m.components)
