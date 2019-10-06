@@ -53,7 +53,7 @@ function _mappath(m::SumNode, x::AbstractArray{T}) where {T}
 	n = length(m.components)
 	lkl, path = Vector{Vector{T}}(undef, n), Vector{Any}(undef, n)
 	Threads.@threads for i in 1:n
-		lkl[i], path[i] = mappath(m.components[i], x)
+		lkl[i], path[i] = _mappath(m.components[i], x)
 	end
 	lkl = transpose(hcat(lkl...))
 	y = Flux.onecold(softmax(lkl, dims = 1))

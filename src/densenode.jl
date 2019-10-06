@@ -30,7 +30,7 @@ normalizelatent!(m::DenseNode) = normalizelatent!(m.p)
 
 function _mappath(m::DenseNode, x::AbstractMatrix{T}) where {T}
 	x, l = m.m((x,zero(T)))
-	lkl, path = mappath(m.p, x)
+	lkl, path = _mappath(m.p, x)
 	return(lkl .+ l[:], path)
 end
 
