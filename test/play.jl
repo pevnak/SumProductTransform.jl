@@ -1,5 +1,5 @@
-using ToyProblems, Distributions, SumNodeModels, Unitary, Flux
-using SumNodeModels: createmixture, updatelatent!
+using ToyProblems, Distributions, SumDenseProduct, Unitary, Flux, LinearAlgebra
+using SumDenseProduct: buildmixture, updatelatent!, fit!
 using Flux:throttle
 
 using Plots
@@ -8,14 +8,18 @@ plotly()
 function visualize(m, x)
 	xr = range(minimum(x[1,:]) - 1 , maximum(x[1,:])+ 1 , length = 100)
 	yr = range(minimum(x[2,:]) - 1 , maximum(x[2,:])+ 1 , length = 100)
-	contour(xr, yr, (x...) ->  Flux.data(logpdf(m, x)));
+	contour(xr, yr, (x...) ->  logpdf(m, [x[1],x[2]])[1]);
 	scatter!(x[1,:], x[2,:])
 end
 
-function cb(m,x)  
-	updatelatent!(m, x)
-	println("logpdf = ",mean(logpdf(m, x)))
-end
+C = cholesky([5 2; 2 1]).U
+x = C* randn(2,100)
+scatter(x[1,:], x[2,:])
+
+model = buildmixture(2, 1, 1, identity; sharing = :dense, firstdense = false)
+model = model[1].c
+history = fit!(model, x, 64, 20000, 100; gradmethod = :exact, minimum_improvement = -1e10, opt = ADAM())
+visualize(model, x)
 
 
 ###############################################################################

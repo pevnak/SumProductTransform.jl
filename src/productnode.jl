@@ -14,6 +14,8 @@ struct ProductNode{T<:Tuple,U<:NTuple{N,UnitRange{Int}} where N}
 	dimensions::U
 end
 
+Flux.@functor ProductNode
+
 """
 	ProductNode(ps::Tuple)
 
@@ -74,8 +76,7 @@ Base.rand(m::ProductNode) = vcat([rand(p) for p in m.components]...)
 
 Base.length(m::ProductNode) = m.dimensions[end].stop
 Base.getindex(m::ProductNode, i...) = getindex(m.components, i...)
-Flux.children(x::ProductNode) = x.components
-Flux.mapchildren(f, x::ProductNode) = f.(Flux.children(x))
+
 
 Base.show(io::IO, z::ProductNode) = dsprint(io, z)
 function dsprint(io::IO, n::ProductNode; pad=[])

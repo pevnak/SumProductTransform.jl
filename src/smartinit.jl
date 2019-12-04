@@ -5,10 +5,28 @@ function initpp!(m::DenseNode, X, shared = :none)
 	initpp!(m.p, X, shared)
 end
 
-function _initpp!(m::DenseNode, X)
+function _initpp!(m::DenseNode{SVDDense{U, D, U, B, S},P}, X)  where {U<: Unitary.InPlaceUnitaryButterfly,D, P, B, S}
 	m.m.b .= - mean(X, dims = 2)[:]
 	m.m.u.θs .= 0
 	m.m.v.θs .= 0
+	d = 1 ./ std(X, dims = 2)[:]
+	d[isnan.(d)] .= 1
+	d[isinf.(d)] .= 1
+	m.m.d.d .= d
+	m.m(X)
+end
+
+function _initpp!(m::DenseNode{SVDDense{U, D, U, B, S},P}, X)  where {U<: Unitary.UnitaryHouseholder,D, P, B, S}
+	m.m.b .= - mean(X, dims = 2)[:]
+	m.m.u.Y .= 0
+	m.m.v.Y .= 0
+	for i in 1:size(m.m.u.Y,2)
+		m.m.u.Y[i,i] = 1
+	end
+	for i in 1:size(m.m.v.Y,2)
+		m.m.v.Y[i,i] = 1
+	end
+
 	d = 1 ./ std(X, dims = 2)[:]
 	d[isnan.(d)] .= 1
 	d[isinf.(d)] .= 1

@@ -22,12 +22,11 @@ function SumNode(components::Vector)
 	SumNode(components, fill(Float32(1/n), n))
 end
 
-
 Base.getindex(m::SumNode,i ::Int) = (c = m.components[i], p = m.prior[i])
 Base.length(m::SumNode) = length(m.components[1])
 
-Flux.children(x::SumNode) = x.components
-Flux.mapchildren(f, x::SumNode) = f.(Flux.children(x))
+Flux.@functor SumNode
+Flux.trainable(m::SumNode) = (m.components,)
 
 """
 	pathlogpdf(p::SumNode, x, path::Vector{Vector{Int}})

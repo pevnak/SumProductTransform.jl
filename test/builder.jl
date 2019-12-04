@@ -78,3 +78,23 @@ end
 	end
 end
 
+@testset "testing that a correct type of unitary matrix is constructed" begin
+	for s in [:none, :all, :dense]
+		model = buildmixture(2, 2, 2, identity; sharing = s, firstdense = false, unitary = :butterfly)
+		@test typeof(model[1].c.m.u) <: Unitary.InPlaceUnitaryButterfly
+		@test typeof(model[1].c.p[1].c.m.u) <: Unitary.InPlaceUnitaryButterfly
+
+		model = buildmixture(2, 2, 2, identity; sharing = s, firstdense = false, unitary = :householder)
+		@test typeof(model[1].c.m.u) <: Unitary.UnitaryHouseholder
+		@test typeof(model[1].c.p[1].c.m.u) <: Unitary.UnitaryHouseholder
+
+		model = buildmixture(2, 2, 2, identity; sharing = s, firstdense = true, unitary = :butterfly)
+		@test typeof(model.p[1].c.m.u) <: Unitary.InPlaceUnitaryButterfly
+		@test typeof(model.p[1].c.p[1].c.m.u) <: Unitary.InPlaceUnitaryButterfly
+
+		model = buildmixture(2, 2, 2, identity; sharing = s, firstdense = true, unitary = :householder)
+		@test typeof(model.p[1].c.m.u) <: Unitary.UnitaryHouseholder
+		@test typeof(model.p[1].c.p[1].c.m.u) <: Unitary.UnitaryHouseholder
+	end
+end
+

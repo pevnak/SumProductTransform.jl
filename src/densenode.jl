@@ -4,7 +4,7 @@ struct DenseNode{M,P} <: Distributions.ContinuousMultivariateDistribution
 end
 
 Base.length(m::DenseNode) = length(m.p)
-Flux.@treelike(DenseNode)
+Flux.@functor DenseNode
 
 
 Distributions.logpdf(m::DenseNode, x::AbstractVector) = logpdf(m, reshape(x, :, 1))[1]

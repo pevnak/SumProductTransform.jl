@@ -1,5 +1,6 @@
 using ToyProblems, Distributions, SumDenseProduct, Unitary, Flux
 using Flux:throttle
+using SumDenseProduct: fit!
 
 using Plots
 plotly()
@@ -7,7 +8,7 @@ plotly()
 function visualize(m, x)
 	xr = range(minimum(x[1,:]) - 1 , maximum(x[1,:])+ 1 , length = 100)
 	yr = range(minimum(x[2,:]) - 1 , maximum(x[2,:])+ 1 , length = 100)
-	contour(xr, yr, (x...) ->  Flux.data(logpdf(m, x)));
+	contour(xr, yr, (x...) ->  logpdf(m, [x[1],x[2]])[1]);
 	scatter!(x[1,:], x[2,:])
 end
 
@@ -16,31 +17,20 @@ end
 #			Let's do a single mixture
 ###############################################################################
 x = flower(200)
-m = allsharedmixture(2, 8, 1)
-# l = logpdf(m, x)
-ps = Flux.params(m);
-# gs = gradient(() ->  mean(logpdf(m, x)), ps)
-opt = ADAM()
-Flux.train!(i -> -mean(logpdf(m, x)), Flux.Params(ps), 1:10000, opt; cb = throttle(() -> (@show mean(logpdf(m, x))),10))
-updatelatent!(m, x);
-visualize(m, x)
-
-
+model = buildmixture(2, 8, 1, identity; sharing = :dense, firstdense = false)
+history = fit!(model, x, 64, 20000, 100; gradmethod = :exact, minimum_improvement = -1e10, opt = ADAM())
+visualize(model, x)
 ###############################################################################
 #			Let's try two nested mixtures
 ###############################################################################
-m = nosharedmixture(2, 4, 2, identity, MultivariateNormal(2,1))
-ps = Flux.params(m);
-opt = ADAM()
-Flux.train!(i -> -mean(logpdf(m, x)), Flux.Params(ps), 1:10000, opt; cb = throttle(() -> (@show mean(logpdf(m, x))),10))
-updatelatent!(m, x);
-m
-visualize(m, x)
+model = buildmixture(2, 4, 2, identity; sharing = :dense, firstdense = false)
+history = fit!(model, x, 64, 20000, 100; gradmethod = :exact, minimum_improvement = -1e10, opt = ADAM())
+visualize(model, x)
 
 ###############################################################################
 #			Let's try shared inner mixture
 ###############################################################################
-m = allsharedmixture(2, 4, 2, identity, MultivariateNormal(2,1))
+m = allsharedmixture(2, 4, 2, identity)
 ps = Flux.params(m);
 opt = ADAM()
 Flux.train!(i -> -mean(logpdf(m, x)), Flux.Params(ps), 1:5000, opt; cb = throttle(() -> (@show mean(logpdf(m, x))),10))
