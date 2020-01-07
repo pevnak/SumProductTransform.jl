@@ -13,7 +13,7 @@ function Distributions.logpdf(m::DenseNode, x::AbstractMatrix{T}) where {T}
 	logpdf(m.p, x) .+ l[:]
 end
 
-function Distributions.logpdf(m::M, x::AbstractMatrix) where {M<: MvNormal{T,Distributions.PDMats.ScalMat{T},Distributions.ZeroVector{T}}} where {T}
+function Distributions.logpdf(m::M, x::AbstractMatrix) where {M<: MvNormal{T,Distributions.PDMats.ScalMat{T},FillArrays.Zeros{T,1,Tuple{Base.OneTo{Int64}}}}} where {T}
 	log_normal(x, m.μ)[:]
 end
 

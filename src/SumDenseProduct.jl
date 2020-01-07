@@ -1,5 +1,5 @@
 module SumDenseProduct
-using Distributions, NNlib, Flux, Unitary, Zygote, StatsBase
+using Distributions, NNlib, Flux, Unitary, Zygote, StatsBase, FillArrays
 
 const COLORS = [:blue, :red, :green, :yellow, :cyan, :magenta]
 

@@ -15,6 +15,7 @@ struct ProductNode{T<:Tuple,U<:NTuple{N,UnitRange{Int}} where N}
 end
 
 Flux.@functor ProductNode
+Flux.trainable(m::ProductNode) = (m.components,)
 
 """
 	ProductNode(ps::Tuple)

@@ -1,4 +1,4 @@
-using IterTools, BSON, ValueHistories
+using IterTools, BSON, ValueHistories, MLDataPattern
 using TimerOutputs
 const to = TimerOutput()
 """
@@ -83,8 +83,8 @@ function exactgrad(model, X, batchsize, ps)
 	@timeit to "exactgrad" begin
 		idxs = sample(1:size(X,2), batchsize, replace = false)
 		x = X[:, idxs]
-		# gradient(() -> -mean(logpdf(model, x)), ps)
-		@timeit to "gradient" threadedgrad(i -> -sum(logpdf(model, x[:,i])), ps, size(x,2))
+		# @timeit to "gradient" threadedgrad(i -> -sum(logpdf(model, x[:,i])), ps, size(x,2))
+		gradient(() -> -mean(logpdf(model, x)), ps)
 	end
 end
 
@@ -134,6 +134,7 @@ end
 
 getgradfun(gradmethod::Vector{Symbol}, model, X, batchsize, maxpath, ps) = tunegrad(model, X, batchsize, maxpath, ps, gradmethod)
 function getgradfun(gradmethod::Symbol, model, X, batchsize, maxpath, ps)
+	batchsize = min(size(X,2), batchsize)
 	if gradmethod == :auto
 		return(tunegrad(model, X, batchsize, maxpath, ps))
 	elseif gradmethod == :exact
