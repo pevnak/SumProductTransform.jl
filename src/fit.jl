@@ -24,7 +24,8 @@ function StatsBase.fit!(model, X, batchsize::Int, maxsteps::Int, maxpath::Int; c
 		end
 		i += check
 
-		update_time = @elapsed updatelatent!(model, X, batchsize);
+		# update_time = @elapsed updatelatent!(model, X, batchsize);
+		update_time = 0
 		likelihood_time = @elapsed newlkl = - mean(batchlogpdf(model, xval, batchsize))
 		println(i,": likelihood = ", -newlkl, "  time per iteration: ", train_time / i,"s update time: ",update_time,"s likelihood time: ",likelihood_time)
 		push!(history, :likelihood, i, newlkl)
@@ -41,11 +42,11 @@ function StatsBase.fit!(model, X, batchsize::Int, maxsteps::Int, maxpath::Int; c
 		end
 		oldlkl = newlkl
 	end
-	updatelatent!(model, X, batchsize);
+	# updatelatent!(model, X, batchsize);
 	history
 end
 
-function samplepdf!(bestpath, model, x, repetitions::Int, pickbest = true)
+function samplepdf!(bestpath, model, x, repetitions::Int, pickbest::Bool = true)
 	paths = [samplepath(model) for i in 1:repetitions]
 	logpdfs = similar(x, size(x,2), repetitions)
 	@timeit to "pathlogpdf" Threads.@threads for i in 1:repetitions
@@ -64,18 +65,44 @@ function samplepdf!(bestpath, model, x, repetitions::Int, pickbest = true)
 	end
 end
 
+function samplepdf!(model, x, repetitions::Int, pickbest::Bool = true)
+	paths = [samplepath(model) for i in 1:repetitions]
+	logpdfs = similar(x, size(x,2), repetitions)
+	@timeit to "pathlogpdf" Threads.@threads for i in 1:repetitions
+		logpdfs[:,i] .= pathlogpdf(model, x, paths[i])
+	end
+
+	if pickbest 		
+		y = mapslices(argmax, logpdfs, dims = 2)
+		o = [logpdfs[i, y[i]] for i in 1:size(x,2)]
+		path = [paths[y[i]] for i in 1:size(x,2)]
+		return(path)
+	else 
+		return([paths[sample(1:repetitions, Weights(softmax(logpdfs[i,:])))] for i in 1:size(x,2)])
+	end
+end
+
 function updatebestpath!(bestpdf, bestpath, o, path)
 	mask = o .> bestpdf
 	bestpath[mask] = path[mask]
 end
 
-function samplinggrad(model, X, bestpath, batchsize, maxpath, ps, pickbest = true)
+function samplinggrad(model, X, bestpath, batchsize, maxpath, ps, pickbest::Bool = true)
 	@timeit to "samplinggrad" begin
 		idxs = sample(1:size(X,2), batchsize, replace = false)
 		x = X[:, idxs]
 		@timeit to "samplepdf" path = SumDenseProduct.samplepdf!(view(bestpath,idxs), model, x, maxpath, pickbest)
 		bp = bestpath[idxs]
 		@timeit to "gradient" threadedgrad(i -> -sum(batchpathlogpdf(model, x[:,i], bp[i])), ps, size(x,2))
+	end
+end
+	
+function samplinggrad(model, X, batchsize, maxpath, ps, pickbest::Bool = true)
+	@timeit to "samplinggrad" begin
+		idxs = sample(1:size(X,2), batchsize, replace = false)
+		x = X[:, idxs]
+		@timeit to "samplepdf" path = SumDenseProduct.samplepdf!(model, x, maxpath, pickbest)
+		@timeit to "gradient" threadedgrad(i -> -sum(batchpathlogpdf(model, x[:,i], path[i])), ps, size(x,2))
 	end
 end
 	
@@ -100,10 +127,17 @@ end
 function tunegrad(model, X, batchsize, maxpath, ps, gradmethod = [:exact, :sampling, :exactpathgrad])
 	bestpath = [samplepath(model) for i in 1:size(X,2)]
 	τ₁, τ₂, τ₃ = typemax(Float64), typemax(Float64), typemax(Float64)
-	if :sampling ∈ gradmethod
+	@show gradmethod
+	if :samplingbest ∈ gradmethod
 		τ₁ = @elapsed samplinggrad(model, X, bestpath, batchsize, maxpath, ps)
 		println("compilation of samplinggrad: ", τ₁)
 		τ₁ = @elapsed samplinggrad(model, X, bestpath, batchsize, maxpath, ps)
+		println("execution of samplinggrad: ", τ₁)
+	end
+	if :sampling ∈ gradmethod
+		τ₁ = @elapsed samplinggrad(model, X, batchsize, maxpath, ps)
+		println("compilation of samplinggrad: ", τ₁)
+		τ₁ = @elapsed samplinggrad(model, X, batchsize, maxpath, ps)
 		println("execution of samplinggrad: ", τ₁)
 	end
 	if :exact ∈ gradmethod
@@ -121,7 +155,11 @@ function tunegrad(model, X, batchsize, maxpath, ps, gradmethod = [:exact, :sampl
 	i = argmin([τ₁, τ₂, τ₃])
 	if i == 1
 		println("using samplinggrad for calculation of the gradient")
-		return(() -> samplinggrad(model, X, bestpath, batchsize, maxpath, ps))
+		if gradmethod == :samplingbest
+			return(() -> samplinggrad(model, X, bestpath, batchsize, maxpath, ps))
+		else
+			return(() -> samplinggrad(model, X, batchsize, maxpath, ps))
+		end
 	elseif i==2
 		println("using exactgrad for calculation of the gradient")
 		return(() -> exactgrad(model, X, batchsize, ps))
@@ -140,9 +178,8 @@ function getgradfun(gradmethod::Symbol, model, X, batchsize, maxpath, ps)
 	elseif gradmethod == :exact
 		return(() -> exactgrad(model, X, batchsize, ps))
 	elseif gradmethod == :sampling
-		bestpath = [samplepath(model) for i in 1:size(X,2)]
-		return(() -> samplinggrad(model, X, bestpath, batchsize, maxpath, ps, false))
-	elseif gradmethod == :bestsampling
+		return(() -> samplinggrad(model, X, batchsize, maxpath, ps, true))
+	elseif gradmethod == :samplingbest
 		bestpath = [samplepath(model) for i in 1:size(X,2)]
 		return(() -> samplinggrad(model, X, bestpath, batchsize, maxpath, ps, true))
 	elseif gradmethod == :exactpath
