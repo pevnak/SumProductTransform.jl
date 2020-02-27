@@ -19,7 +19,6 @@ function StatsBase.fit!(model, X, batchsize::Int, maxsteps::Int, maxpath::Int; c
 		check = min(check, maxsteps - i)
 		train_time += @elapsed for j in 1:check
 			gs = gradfun()
-			gs == nothing && @warn "nothing in gradient"
 			Flux.Optimise.update!(opt, ps, gs)
 		end
 		i += check
@@ -111,7 +110,12 @@ function exactgrad(model, X, batchsize, ps)
 		idxs = sample(1:size(X,2), batchsize, replace = false)
 		x = X[:, idxs]
 		# @timeit to "gradient" threadedgrad(i -> -sum(logpdf(model, x[:,i])), ps, size(x,2))
-		gradient(() -> -mean(logpdf(model, x)), ps)
+		gs = gradient(() -> -mean(logpdf(model, x)), ps)
+		# if any([any(isnan.(gs[p])) for p in ps])
+		# 	!isfile("/tmp/sumdense.jls") && serialize("/tmp/sumdense.jls",(model, x))
+		# 	@error "nan in gradient"
+		# end
+		gs
 	end
 end
 

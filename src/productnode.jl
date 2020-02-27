@@ -34,31 +34,30 @@ function ProductNode(ps::Tuple)
 	ProductNode(ps, tuple(dimensions...))
 end
 
-function Distributions.logpdf(m::ProductNode, x)
-	o = logpdf(m.components[1], x[m.dimensions[1],:])
+function Distributions.logpdf(m::ProductNode, x, s::AbstractScope = NoScope())
+	m
+	o = logpdf(m.components[1], x[m.dimensions[1],:], s[m.dimensions[1]])
 	for i in 2:length(m.components)
-		o += logpdf(m.components[i], x[m.dimensions[i],:])
+		o += logpdf(m.components[i], x[m.dimensions[i],:], s[m.dimensions[1]])
 	end
 	o
 end
 
-function pathlogpdf(p::ProductNode, x, path) 
-	o = pathlogpdf(p.components[1], x[p.dimensions[1],:], path[1])
+function pathlogpdf(p::ProductNode, x, path, s::AbstractScope = NoScope())
+	o = pathlogpdf(p.components[1], x[p.dimensions[1],:], path[1], s[m.dimensions[1]])
 	for i in 2:length(p.components)
-		o += pathlogpdf(p.components[i], x[p.dimensions[i],:], path[i])
+		o += pathlogpdf(p.components[i], x[p.dimensions[i],:], path[i], s[m.dimensions[1]])
 	end
 	o
 end
 
 pathcount(m::ProductNode) = mapreduce(n -> pathcount(n), *, m.components)
 samplepath(m::ProductNode) = map(samplepath, m.components)
-zerolatent!(m::ProductNode) = foreach(zerolatent!, m.components)
 function _updatelatent!(m::ProductNode, path)
 	for i in 1:length(m.components)
 		_updatelatent!(m.components[i], path[i])
 	end
 end
-normalizelatent!(m::ProductNode) = foreach(normalizelatent!, m.components)
 
 
 function _mappath(m::ProductNode, x)

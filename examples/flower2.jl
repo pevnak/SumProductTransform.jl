@@ -7,10 +7,13 @@ using Plots
 plotly()
 
 function plot_contour(m, x)
-	xr = range(minimum(x[1,:]) - 1 , maximum(x[1,:])+ 1 , length = 100)
-	yr = range(minimum(x[2,:]) - 1 , maximum(x[2,:])+ 1 , length = 100)
-	contour(xr, yr, (x...) ->  logpdf(m, [x[1],x[2]])[1]);
-	scatter!(x[1,:], x[2,:])
+	levels = quantile(exp.(logpdf(m, x)), 0.01:0.09:0.99)
+	xr = range(minimum(x[1,:]) - 1 , maximum(x[1,:])+ 1 , length = 200)
+	yr = range(minimum(x[2,:]) - 1 , maximum(x[2,:])+ 1 , length = 200)
+	# contour(xr, yr, (x...) ->  logpdf(m, [x[1],x[2]])[1], levels = levels)
+	# heatmap(xr, yr, (x...) ->  exp(logpdf(m, [x[1],x[2]])[1]))
+	# scatter!(x[1,:], x[2,:])
+	contour(xr, yr, (x...) ->  exp(logpdf(m, [x[1],x[2]])[1]))
 end
 
 function plot_components(m, x)
@@ -27,20 +30,37 @@ function plot_rand(m, n)
 end
 
 function buildm(n)
-	p₁ = DenseNode(Chain(Unitary.SVDDense(1, tanh, :householder), Unitary.SVDDense(1, identity, :householder)),  MvNormal(1,1f0))
-	p₂ = DenseNode(Unitary.SVDDense(1, identity, :householder),  MvNormal(1,1f0))
-	p₁₂ = ProductNode((p₁, p₂))
-	m = SumNode([DenseNode(Unitary.SVDDense(2, identity, :householder), p₁₂) for i in 1:n])
-	m
+	# p₁ = DenseNode(Chain(Unitary.SVDDense(1, tanh, :householder), Unitary.SVDDense(1, identity, :householder)),  MvNormal(1,1f0))
+	# p₂ = DenseNode(Unitary.SVDDense(1, identity, :householder),  MvNormal(1,1f0))
+	p₁₂ = SumNode([DenseNode(Chain(Unitary.SVDDense(2, selu, :householder), Unitary.SVDDense(2, identity, :householder)),  MvNormal(2,1f0)) for _ in 1:2])
+	SumNode([DenseNode(Unitary.SVDDense(2, identity, :householder), p₁₂) for i in 1:n])
 end
 
 
 function buildm2()
-	p₁ = DenseNode(Chain(Unitary.SVDDense(1, tanh, :householder), Unitary.SVDDense(1, identity, :householder)),  MvNormal(1,1f0))
-	p₂ = DenseNode(Unitary.SVDDense(1, identity, :householder),  MvNormal(1,1f0))
-	p₁₂ = ProductNode((p₁, p₂))
-	m₁ = SumNode([DenseNode(Unitary.SVDDense(2, identity, :householder), p₁₂) for i in 1:6])
-	SumNode([DenseNode(Unitary.SVDDense(2, identity, :householder), m₁) for i in 1:6])
+	# p₁ = DenseNode(Chain(Unitary.SVDDense(1, selu, :householder), Unitary.SVDDense(1, identity, :householder)),  MvNormal(1,1f0))
+	# p₂ = DenseNode(Chain(Unitary.SVDDense(1, selu, :householder), Unitary.SVDDense(1, identity, :householder)),  MvNormal(1,1f0))
+	# # p₂ = DenseNode(Unitary.SVDDense(1, identity, :householder),  MvNormal(1,1f0))
+	# p₁₂ = ProductNode((p₁, p₂))
+	p₁₂ = DenseNode(Chain(Unitary.SVDDense(2, selu, :householder), Unitary.SVDDense(2, identity, :householder)),  MvNormal(2,1f0))
+	m₁ = SumNode([DenseNode(Chain(Unitary.SVDDense(2, identity, :householder),Unitary.SVDDense(2, identity, :householder)), p₁₂) for i in 1:9])
+	SumNode([DenseNode(Chain(Unitary.SVDDense(2, identity, :householder), Unitary.SVDDense(2, identity, :householder)), m₁) for i in 1:9])
+end
+function buildm3()
+	# p₁ = DenseNode(Chain(Unitary.SVDDense(1, selu, :householder), Unitary.SVDDense(1, identity, :householder)),  MvNormal(1,1f0))
+	# p₂ = DenseNode(Chain(Unitary.SVDDense(1, selu, :householder), Unitary.SVDDense(1, identity, :householder)),  MvNormal(1,1f0))
+	# p₁₂ = ProductNode((p₁, p₂))
+	p₁₂ = DenseNode(Chain(Unitary.SVDDense(2, selu, :householder), Unitary.SVDDense(2, identity, :householder)),  MvNormal(2,1f0))
+	m₁ = SumNode([DenseNode(Chain(Unitary.SVDDense(2, identity, :householder),Unitary.SVDDense(2, identity, :householder)), p₁₂) for i in 1:6])
+	m2 = SumNode([DenseNode(Chain(Unitary.SVDDense(2, identity, :householder), Unitary.SVDDense(2, identity, :householder)), m₁) for i in 1:6])
+	SumNode([DenseNode(Chain(Unitary.SVDDense(2, identity, :householder), Unitary.SVDDense(2, identity, :householder)), m2) for i in 1:6])
+end
+
+function buildm3()
+	p₁₂ = DenseNode(Chain(Unitary.SVDDense(2, selu, :butterfly), Unitary.SVDDense(2, identity, :butterfly)),  MvNormal(2,1f0))
+	m₁ = SumNode([DenseNode(Chain(Unitary.SVDDense(2, identity, :butterfly),Unitary.SVDDense(2, identity, :butterfly)), p₁₂) for i in 1:6])
+	m2 = SumNode([DenseNode(Chain(Unitary.SVDDense(2, identity, :butterfly), Unitary.SVDDense(2, identity, :butterfly)), m₁) for i in 1:6])
+	SumNode([DenseNode(Chain(Unitary.SVDDense(2, identity, :butterfly), Unitary.SVDDense(2, identity, :butterfly)), m2) for i in 1:6])
 end
 
 # function build1dmixture()
@@ -63,19 +83,19 @@ end
 x = flower2(1000, npetals = 9)
 model = buildm(9)
 SumDenseProduct.initpp2!(model, x, 9)
-history = fit!(model, x, 64, 20000, 100; gradmethod = :exact, minimum_improvement = -1e10, opt = ADAM())
+history = fit!(model, x, 64, 10000, 100; gradmethod = :exact, minimum_improvement = -1e10, opt = ADAM())
 plot_contour(model, x);
 title!("non-normal mixture")
 plot_components(model, x)
 
-init_model = buildm2()
-model = deepcopy(init_model)
+# init_model = buildm2()
 # SumDenseProduct.initpp2!(model, x, 20)
 # updatelatent!(model, x)
 # plot_contour(model, x);
 # title!("initilized")
 # plot_components(model, x)
-history = fit!(model, x, 64, 1000, 20; gradmethod = :sampling, minimum_improvement = -1e10, opt = ADAM())
+model = buildm2()
+history = fit!(model, x, 64, 10000, 20; gradmethod = :exact, minimum_improvement = -1e10, opt = ADAM())
 plot_contour(model, x);
 title!("fitted")
 plot_components(model, x)
@@ -83,8 +103,8 @@ plot_rand(model[1].c.p[1].c)
 
 # Let's try to find a sample with least likelihood
 
-function iteratedlearning(model, x)
-	history = fit!(model, x, 64, 5000, 20; gradmethod = :sampling, minimum_improvement = -1e10, opt = ADAM(), reset_threshold = 0.01)
+function iteratedlearning(model, x, reset_threshold = 0.01)
+	history = fit!(model, x, 64, 5000, 20; gradmethod = :sampling, minimum_improvement = -1e10, opt = ADAM())
 	for i in 1:10 
 		@show mean(logpdf(model, x))
 		os, paths = mappath(model, x)

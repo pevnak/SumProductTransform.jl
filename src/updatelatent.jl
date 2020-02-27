@@ -6,16 +6,20 @@ using MLDataPattern
 	estimate the probability of a component in `m` using data in `x`.
 	if `bs < size(x,2)`, then the update is calculated part by part to save memory
 """
-function updatelatent!(m, x, bs::Int = typemax(Int))
-	zerolatent!(m);
+function updatelatent!(m, x, bs::Int = typemax(Int), prior_count = 1)
+	ps = priors(m)
+    foreach(p -> p .= prior_count, ps)
 	paths = mappath(m, x)[2]
 	foreach(p -> _updatelatent!(m, p), paths)
-	normalizelatent!(m);
+    foreach(normalizelatent!, ps)
 end
 
-zerolatent!(m) = nothing
-normalizelatent!(m) = nothing
 _updatelatent!(m, path) = nothing
+
+function normalizelatent!(w)
+    w .= w ./ max(sum(w), 1) 
+    w .= log.(w)
+end
 
 function mappath(m, x)
 	n = nobs(x)

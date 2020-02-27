@@ -1,4 +1,4 @@
-using Zygote: dropgrad
+using StatsBase
 
 struct SumNode{T,C}
 	components::Vector{C}
@@ -9,6 +9,8 @@ struct SumNode{T,C}
 		new{T,C}(components, prior)
 	end
 end
+
+_priors(m::SumNode) = m.prior
 
 """
 	SumNode(components::Vector, prior::Vector)
@@ -26,7 +28,6 @@ Base.getindex(m::SumNode,i ::Int) = (c = m.components[i], p = m.prior[i])
 Base.length(m::SumNode) = length(m.components[1])
 
 Flux.@functor SumNode
-Flux.trainable(m::SumNode) = (m.components,)
 
 """
 	pathlogpdf(p::SumNode, x, path::Vector{Vector{Int}})
@@ -34,8 +35,8 @@ Flux.trainable(m::SumNode) = (m.components,)
 	logpdf of samples `x` calculated along the `path`, which determine only 
 	subset of models
 """
-function pathlogpdf(p::SumNode, x, path) 
-	pathlogpdf(p.components[path[1]], x, path[2])
+function pathlogpdf(p::SumNode, x, path, s::AbstractScope = NoScope()) 
+	pathlogpdf(p.components[path[1]], x, path[2], s)
 end
 
 """
@@ -44,7 +45,7 @@ end
 	samples path determining subset of the model
 """
 function samplepath(m::SumNode) 
-	i = rand(1:length(m.components))
+	i = sample(Weights(softmax(m.prior)))
 	(i, samplepath(m.components[i]))
 end
 
@@ -66,37 +67,17 @@ pathcount(m::SumNode) = mapreduce(pathcount, +, m.components)
 
 Base.rand(m::SumNode) = rand(m.components[sample(Weights(m.prior))])
 
-
-Zygote.@adjoint Flux.onehotbatch(y, n) = Flux.onehotbatch(y,n), Δ -> (nothing, nothing)
-Zygote.@adjoint Flux.onecold(x) = Flux.onecold(x), Δ -> (nothing,)
-
-
 """
 	logpdf(m::MixtureModel, x)
 
 	log-likelihood on samples `x`. During evaluation, weights of mixtures are taken into the account.
 	During training, the prior of the sample is one for the most likely component and zero for the others.
 """
-function Distributions.logpdf(m::SumNode, x)
-	lkl = transpose(hcat(map(c -> logpdf(c, x) ,m.components)...))
-	if Flux.istraining()
-		y = Flux.onecold(softmax(dropgrad(lkl), dims = 1))
-		o = Flux.onehotbatch(y, 1:length(m.components))
-		return(mean( o .* lkl, dims = 1)[:])
-	else
-		return(logsumexp(log.(m.prior .+ 1f-8) .+ lkl, dims = 1)[:])
-	end
-end
-
-function zerolatent!(m::SumNode)
-	m.prior .= 0 
-	foreach(zerolatent!, m.components)
-	nothing
-end
-
-function normalizelatent!(m::SumNode)
-	m.prior ./= max(sum(m.prior), 1) 
-	foreach(normalizelatent!, m.components) 
+function Distributions.logpdf(m::SumNode, x, s::AbstractScope = NoScope())
+	lkl = transpose(hcat(map(c -> logpdf(c, x, s) ,m.components)...))
+	w = softmax(m.prior) .+ 0.001f0
+	w = w ./ sum(w)
+	logsumexp(log.(w .+ 0.001f0) .+ lkl, dims = 1)[:]
 end
 
 function _updatelatent!(m::SumNode, path)
@@ -105,20 +86,20 @@ function _updatelatent!(m::SumNode, path)
 	_updatelatent!(m.components[component], path[2])
 end
 
-_priors(m::SumNode) = m.prior
-
 
 Base.show(io::IO, z::SumNode{T,C}) where {T,C} = dsprint(io, z)
 function dsprint(io::IO, n::SumNode; pad=[])
+	w = softmax(n.prior) .+ 0.001f0
+	w = w ./ sum(w)
     c = COLORS[(length(pad)%length(COLORS))+1]
     paddedprint(io, "Mixture\n", color=c)
 
     m = length(n.components)
     for i in 1:(m-1)
-        paddedprint(io, "  ├── $(n.prior[i])", color=c, pad=pad)
+        paddedprint(io, "  ├── $(w[i])", color=c, pad=pad)
         dsprint(io, n.components[i], pad=[pad; (c, "  │   ")])
     end
-    paddedprint(io, "  └── $(n.prior[end])", color=c, pad=pad)
+    paddedprint(io, "  └── $(w[end])", color=c, pad=pad)
     dsprint(io, n.components[end], pad=[pad; (c, "      ")])
 end
 

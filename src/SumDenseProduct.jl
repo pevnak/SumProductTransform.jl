@@ -17,6 +17,11 @@ function dsprint(io, s ; pad = [])
 	paddedprint(io, s, pad = pad)
 end
 
+function dsprint(io::IO, n::MvNormal; pad=[])
+    c = COLORS[(length(pad)%length(COLORS))+1]
+    paddedprint(io, " MvNormal\n", color=c)
+end
+
 
 function logsumexp(x; dims = :)
 	xm = maximum(x, dims = dims)
@@ -64,17 +69,29 @@ _mappath(m, x)= (logpdf(m,x), fill(tuple(), size(x, 2)))
 batchpathlogpdf(m, x, path) = map(i -> pathlogpdf(m, x[:,i:i], path[i])[1], 1:length(path))
 
 
+function Distributions.logpdf(m::M, x::AbstractMatrix) where {M<: MvNormal{T,Distributions.PDMats.ScalMat{T},FillArrays.Zeros{T,1,Tuple{Base.OneTo{Int64}}}}} where {T}
+  log_normal(x, m.μ)[:]
+end
+
 _priors(m) = nothing
+function priors!(ps, x, seen = Flux.IdSet())
+  x in seen && return
+  push!(seen, x)
+  xx = _priors(x)
+  !isnothing(xx) && push!(ps, xx)
+  for child in Flux.trainable(x)
+    priors!(ps, child, seen)
+  end
+end
+
 function priors(m)
-  ps = Flux.Params()
-  Flux.prefor(p -> begin
-  	pr = _priors(p)
-  	pr != nothing && !any(p′ -> p′ === pr, ps) && push!(ps, pr)
-  end, m)
+  ps = []
+  priors!(ps, m)
   return ps
 end
 
-
+include("scope.jl")
+include("scopedsvd.jl")
 include("threadedgrads.jl")
 include("sumnode.jl")
 include("densenode.jl")
