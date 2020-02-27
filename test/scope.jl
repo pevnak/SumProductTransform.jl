@@ -1,4 +1,4 @@
-using SumDenseProduct, Test
+using SumDenseProduct, Test, Flux
 using Unitary
 using Unitary: Butterfly, SVDDense, DiagonalRectangular
 using SumDenseProduct: Scope, FullScope, NoScope
@@ -105,27 +105,15 @@ end
 @testset "scoping and Flux" begin
     m  = Unitary.SVDDense(4, identity, :givens)
     x = Float32.(reshape([1,2,3,4],4,1))
-    xx, _= m((x, 0))
+
+    ps = Flux.params(m)
+
+    gradient(() -> sum(m((x,0))[1]), ps)
+
 
     s = Scope([1,2],4)
-    ms = SVDDense(m, s)
-    xx, l, _= m((x[1:2,:], 0, s))
-	xxr, lr = ms((x[1:2,:],0))
-	@test xx ≈ xxr
-	@test l ≈ lr
-
-    s = Scope([1,2,3],4)
-    ms = SVDDense(m, s)
-    xx, l, _= m((x[1:3,:], 0, s))
-	xxr, lr = ms((x[1:3,:],0))
-	@test xx ≈ xxr
-	@test l ≈ lr
-
-    s = Scope([1,3,4],4)
-    ms = SVDDense(m, s)
-    xx, l, _= m((x[1:3,:], 0, s))
-	xxr, lr = ms((x[1:3,:],0))
-	@test xx ≈ xxr
-	@test l ≈ lr
+    gs1 = gradient(() -> sum(sin.(m((x[1:2,:],0,s))[1])), ps)
+    gs2 = gradient(() -> sum(sin.(SVDDense(m, s)((x[1:2,:],0))[1])), ps)
+	@test all([gs1[p] ≈ gs2[p] for p in ps])
 end
 
