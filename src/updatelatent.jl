@@ -1,22 +1,37 @@
 using MLDataPattern
 
+struct Priors
+    priors::IdDict{Any,Any}
+end
+Priors() = Priors(IdDict{Any,Any}())
+Base.setindex!(p::Priors, k, v) = p.priors[k] = v
+Base.getindex!(p::Priors, k) = p.priors[k]
+
 """
 	updatelatent!(m, x, bs::Int = typemax(Int))
 
 	estimate the probability of a component in `m` using data in `x`.
 	if `bs < size(x,2)`, then the update is calculated part by part to save memory
 """
-function updatelatent!(m, x, bs::Int = typemax(Int), prior_count = 1)
+function updatelatent!(m, x, prior_count = 1)
 	ps = priors(m)
     foreach(p -> p .= prior_count, ps)
 	paths = mappath(m, x)[2]
 	foreach(p -> _updatelatent!(m, p), paths)
-    foreach(normalizelatent!, ps)
+    foreach(normalizeprior!, ps)
 end
 
-_updatelatent!(m, path) = nothing
+function priors(m, x, prior_count = 1)
+    ps = Priors()
+    foreach(p -> ps[p] = similar(p) .= prior_count, ps)
+    paths = mappath(m, x)[2]
+    foreach(p -> updateprior!(m, p, ps), paths)
+    foreach(normalizeprior!, ps)
+end
 
-function normalizelatent!(w)
+updateprior!(m, path, ps) = nothing
+
+function normalizeprior!(w)
     w .= w ./ max(sum(w), 1) 
     w .= log.(w)
 end

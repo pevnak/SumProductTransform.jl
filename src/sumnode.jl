@@ -49,11 +49,11 @@ function samplepath(m::SumNode)
 	(i, samplepath(m.components[i]))
 end
 
-function _mappath(m::SumNode, x::AbstractArray{T}) where {T}
+function _mappath(m::SumNode, x::AbstractArray{T}, s::AbstractScope) where {T}
 	n = length(m.components)
 	lkl, path = Vector{Vector{T}}(undef, n), Vector{Any}(undef, n)
-	Threads.@threads for i in 1:n
-		lkl[i], path[i] = _mappath(m.components[i], x)
+	for i in 1:n
+		lkl[i], path[i] = _mappath(m.components[i], x, s)
 	end
 	lkl = transpose(hcat(lkl...))
 	y = Flux.onecold(softmax(lkl, dims = 1))
@@ -80,12 +80,12 @@ function Distributions.logpdf(m::SumNode, x, s::AbstractScope = NoScope())
 	logsumexp(log.(w .+ 0.001f0) .+ lkl, dims = 1)[:]
 end
 
-function _updatelatent!(m::SumNode, path)
+function updateprior!(ps::Priors, m::SumNode, path)
+	p = get(ps, m.prior, similar(m.prior) .= 0)
 	component = path[1]
-	m.prior[component] += 1
-	_updatelatent!(m.components[component], path[2])
+	p[component] += 1
+	updateprior!(ps, m.components[component], path[2])
 end
-
 
 Base.show(io::IO, z::SumNode{T,C}) where {T,C} = dsprint(io, z)
 function dsprint(io::IO, n::SumNode; pad=[])

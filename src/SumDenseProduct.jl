@@ -1,6 +1,8 @@
 module SumDenseProduct
 using Distributions, NNlib, Flux, Unitary, Zygote, StatsBase, FillArrays
 
+include("scope.jl")
+
 const COLORS = [:blue, :red, :green, :yellow, :cyan, :magenta]
 
 function paddedprint(io, s...; color=:default, pad=[])
@@ -37,6 +39,7 @@ log_normal(x,μ, σ2::T) where {T<:Number} = - sum((@. ((x - μ)^2)/σ2), dims=1
 
 #Let's do a little bit of function stealing
 Distributions.logpdf(p::MvNormal, x::AbstractMatrix) = log_normal(x)[:]
+Distributions.logpdf(p::MvNormal, x::AbstractMatrix, S::NoScope) = log_normal(x)[:]
 
 batchlogpdf(p, x, bs::Int) = reduce(vcat, map(i -> logpdf(p, x[:,i]), Iterators.partition(1:size(x,2), bs)))
 
@@ -55,6 +58,7 @@ pathcount(m) = 1
     For distributions outside the SumDenseProduct it falls back to logpdf(p, x).
 """
 pathlogpdf(m, x, path) = logpdf(m, x)
+pathlogpdf(m, x, path, s::AbstractScope) = logpdf(m, x)
 
 """
     path = samplepath(m)
@@ -64,7 +68,7 @@ pathlogpdf(m, x, path) = logpdf(m, x)
 """
 samplepath(m) = tuple()
 
-_mappath(m, x)= (logpdf(m,x), fill(tuple(), size(x, 2)))
+_mappath(m, x, s::AbstractScope = NoScope())= (logpdf(m,x), fill(tuple(), size(x, 2)))
 
 batchpathlogpdf(m, x, path) = map(i -> pathlogpdf(m, x[:,i:i], path[i])[1], 1:length(path))
 
@@ -90,7 +94,7 @@ function priors(m)
   return ps
 end
 
-include("scope.jl")
+include("priors.jl")
 include("scopedsvd.jl")
 include("threadedgrads.jl")
 include("sumnode.jl")
@@ -98,11 +102,12 @@ include("densenode.jl")
 include("productnode.jl")
 include("modelbuilders.jl")
 include("fit.jl")
-include("updatelatent.jl")
 include("smartinit.jl")
+include("fitting/em.jl")
 
 
 export SumNode, DenseNode, ProductNode
-export densesharedmixture, nosharedmixture, allsharedmixture, priors, updatelatent!, buildmixture, pathcount, batchlogpdf, initpp!
+export densesharedmixture, nosharedmixture, allsharedmixture, priors, updatelatent!, buildmixture, pathcount, batchlogpdf
+export em!, fit!
 
 end # module

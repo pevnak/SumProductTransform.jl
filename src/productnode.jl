@@ -53,18 +53,19 @@ end
 
 pathcount(m::ProductNode) = mapreduce(n -> pathcount(n), *, m.components)
 samplepath(m::ProductNode) = map(samplepath, m.components)
-function _updatelatent!(m::ProductNode, path)
+
+function updateprior!(ps::Priors, m::ProductNode, path)
 	for i in 1:length(m.components)
-		_updatelatent!(m.components[i], path[i])
+		updateprior!(ps, m.components[i], path[i])
 	end
 end
 
 
-function _mappath(m::ProductNode, x)
-	o, path = _mappath(m.components[1], x[m.dimensions[1],:])
+function _mappath(m::ProductNode, x, s::AbstractScope = NoScope())
+	o, path = _mappath(m.components[1], x[m.dimensions[1],:], s[m.dimensions[1]])
 	path = map(s -> (s,), path)
 	for i in 2:length(m.components)
-		oo, pp = _mappath(m.components[i], x[m.dimensions[i],:])
+		oo, pp = _mappath(m.components[i], x[m.dimensions[i],:], s[m.dimensions[i]])
 		o .+= oo
 		path = map(s -> tuple(s[1]..., s[2]), zip(path, pp))
 	end

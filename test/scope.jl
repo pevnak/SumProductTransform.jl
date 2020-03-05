@@ -68,34 +68,27 @@ end
 	@test ridxs == idxs
 end
 
-Unitary.Butterfly(a::Butterfly, s::Scope) = 
-	Butterfly(filter(s,a.θs, a.idxs)..., length(s.dims))
-Unitary.DiagonalRectangular(a::DiagonalRectangular, s::Scope) = 
-	DiagonalRectangular(a.d[s.dims], length(s.dims), length(s.dims))
-Unitary.SVDDense(a::SVDDense, s::Scope) = 
-	SVDDense(Butterfly(a.u, s), DiagonalRectangular(a.d, s), Butterfly(a.v, s), a.b[s.dims], a.σ)
-
 @testset "scoping in SVDDense" begin
     m  = Unitary.SVDDense(4, identity, :givens)
     x = Float32.(reshape([1,2,3,4],4,1))
     xx, _= m((x, 0))
 
     s = Scope([1,2],4)
-    ms = SVDDense(m, s)
+    ms = m[s]
     xx, l, _= m((x[1:2,:], 0, s))
 	xxr, lr = ms((x[1:2,:],0))
 	@test xx ≈ xxr
 	@test l ≈ lr
 
     s = Scope([1,2,3],4)
-    ms = SVDDense(m, s)
+    ms = m[s]
     xx, l, _= m((x[1:3,:], 0, s))
 	xxr, lr = ms((x[1:3,:],0))
 	@test xx ≈ xxr
 	@test l ≈ lr
 
     s = Scope([1,3,4],4)
-    ms = SVDDense(m, s)
+    ms = m[s]
     xx, l, _= m((x[1:3,:], 0, s))
 	xxr, lr = ms((x[1:3,:],0))
 	@test xx ≈ xxr
@@ -113,7 +106,26 @@ end
 
     s = Scope([1,2],4)
     gs1 = gradient(() -> sum(sin.(m((x[1:2,:],0,s))[1])), ps)
-    gs2 = gradient(() -> sum(sin.(SVDDense(m, s)((x[1:2,:],0))[1])), ps)
+    gs2 = gradient(() -> sum(sin.(m[s]((x[1:2,:],0))[1])), ps)
 	@test all([gs1[p] ≈ gs2[p] for p in ps])
 end
+
+
+#############################################################################
+#	Benchmarking
+#############################################################################
+using BenchmarkTools
+d, l = 50, 100
+m  = Unitary.SVDDense(d, identity, :givens)
+x = randn(Float32, 50, 100)
+
+ps = Flux.params(m)
+
+@btime gradient(() -> sum(m((x,0))[1]), ps); #  1.901 ms (269 allocations: 345.98 KiB)
+
+
+s = Scope(d)[1:25]
+xx = x[1:25,:]
+@btime gradient(() -> sum(sin.(m((xx,0,s))[1])), ps); # 1.392 ms (67950 allocations: 2.69 MiB)
+@btime gradient(() -> sum(sin.(m[s]((xx,0))[1])), ps); # 1.452 ms (68098 allocations: 2.69 MiB)
 
