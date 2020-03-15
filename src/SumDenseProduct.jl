@@ -31,12 +31,29 @@ end
 logsoftmax(x; dims = :) = x .- logsumexp(x, dims = dims)
 softmax(x; dims = :) = exp.(logsoftmax(x, dims = dims))
 
+include("scope.jl")
+include("scopedsvd.jl")
+include("scopedlu.jl")
+include("threadedgrads.jl")
+include("sumnode.jl")
+include("densenode.jl")
+include("productnode.jl")
+include("modelbuilders.jl")
+include("fit.jl")
+include("updatelatent.jl")
+include("smartinit.jl")
+
+
 log_normal(x) = - sum(x.^2, dims=1) / 2 .- size(x,1)*log(Float32(2π)) / 2
+log_normal(x, s::NoScope) = - sum(x.^2, dims=1) / 2 .- size(x,1)*log(Float32(2π)) / 2
+log_normal(x, s::FullScope) = - sum(x.^2, dims=1) / 2 .- size(x,1)*log(Float32(2π)) / 2
+log_normal(x, s::Scope) = - sum(x[s.dims, :].^2, dims=1) / 2 .- s.n*log(Float32(2π)) / 2
 log_normal(x,μ) = log_normal(x .- μ)
 log_normal(x,μ, σ2::T) where {T<:Number} = - sum((@. ((x - μ)^2)/σ2), dims=1)/2 .- size(x,1)*log(σ2*2π)/2
 
 #Let's do a little bit of function stealing
 Distributions.logpdf(p::MvNormal, x::AbstractMatrix) = log_normal(x)[:]
+Distributions.logpdf(p::MvNormal, x::AbstractMatrix, s::AbstractScope) = log_normal(x, s)[:]
 
 batchlogpdf(p, x, bs::Int) = reduce(vcat, map(i -> logpdf(p, x[:,i]), Iterators.partition(1:size(x,2), bs)))
 
@@ -90,16 +107,6 @@ function priors(m)
   return ps
 end
 
-include("scope.jl")
-include("scopedsvd.jl")
-include("threadedgrads.jl")
-include("sumnode.jl")
-include("densenode.jl")
-include("productnode.jl")
-include("modelbuilders.jl")
-include("fit.jl")
-include("updatelatent.jl")
-include("smartinit.jl")
 
 
 export SumNode, DenseNode, ProductNode

@@ -30,51 +30,30 @@ function plot_rand(m, n)
 end
 
 function buildm(n)
-	# p₁ = DenseNode(Chain(Unitary.SVDDense(1, tanh, :householder), Unitary.SVDDense(1, identity, :householder)),  MvNormal(1,1f0))
-	# p₂ = DenseNode(Unitary.SVDDense(1, identity, :householder),  MvNormal(1,1f0))
-	p₁₂ = SumNode([DenseNode(Chain(Unitary.SVDDense(2, selu, :householder), Unitary.SVDDense(2, identity, :householder)),  MvNormal(2,1f0)) for _ in 1:2])
-	SumNode([DenseNode(Unitary.SVDDense(2, identity, :householder), p₁₂) for i in 1:n])
+	p₁₂ = SumNode([DenseNode(Chain(Unitary.LUDense(2, selu), Unitary.LUDense(2, identity)),  MvNormal(2,1f0)) for _ in 1:2])
+	SumNode([DenseNode(Unitary.LUDense(2, identity), p₁₂) for i in 1:n])
 end
 
 
 function buildm2()
-	# p₁ = DenseNode(Chain(Unitary.SVDDense(1, selu, :householder), Unitary.SVDDense(1, identity, :householder)),  MvNormal(1,1f0))
-	# p₂ = DenseNode(Chain(Unitary.SVDDense(1, selu, :householder), Unitary.SVDDense(1, identity, :householder)),  MvNormal(1,1f0))
-	# # p₂ = DenseNode(Unitary.SVDDense(1, identity, :householder),  MvNormal(1,1f0))
-	# p₁₂ = ProductNode((p₁, p₂))
-	p₁₂ = DenseNode(Chain(Unitary.SVDDense(2, selu, :householder), Unitary.SVDDense(2, identity, :householder)),  MvNormal(2,1f0))
-	m₁ = SumNode([DenseNode(Chain(Unitary.SVDDense(2, identity, :householder),Unitary.SVDDense(2, identity, :householder)), p₁₂) for i in 1:9])
-	SumNode([DenseNode(Chain(Unitary.SVDDense(2, identity, :householder), Unitary.SVDDense(2, identity, :householder)), m₁) for i in 1:9])
-end
-function buildm3()
-	# p₁ = DenseNode(Chain(Unitary.SVDDense(1, selu, :householder), Unitary.SVDDense(1, identity, :householder)),  MvNormal(1,1f0))
-	# p₂ = DenseNode(Chain(Unitary.SVDDense(1, selu, :householder), Unitary.SVDDense(1, identity, :householder)),  MvNormal(1,1f0))
-	# p₁₂ = ProductNode((p₁, p₂))
-	p₁₂ = DenseNode(Chain(Unitary.SVDDense(2, selu, :householder), Unitary.SVDDense(2, identity, :householder)),  MvNormal(2,1f0))
-	m₁ = SumNode([DenseNode(Chain(Unitary.SVDDense(2, identity, :householder),Unitary.SVDDense(2, identity, :householder)), p₁₂) for i in 1:6])
-	m2 = SumNode([DenseNode(Chain(Unitary.SVDDense(2, identity, :householder), Unitary.SVDDense(2, identity, :householder)), m₁) for i in 1:6])
-	SumNode([DenseNode(Chain(Unitary.SVDDense(2, identity, :householder), Unitary.SVDDense(2, identity, :householder)), m2) for i in 1:6])
+	p₁₂ = DenseNode(Chain(Unitary.LUDense(2, selu), Unitary.LUDense(2, identity)),  MvNormal(2,1f0))
+	m₁ = SumNode([DenseNode(Chain(Unitary.LUDense(2, identity),Unitary.LUDense(2, identity)), p₁₂) for i in 1:9])
+	SumNode([DenseNode(Chain(Unitary.LUDense(2, identity), Unitary.LUDense(2, identity)), m₁) for i in 1:9])
 end
 
-function buildm3()
+function buildm3_lu()
+	p₁₂ = DenseNode(Chain(Unitary.LUDense(2, selu), Unitary.LUDense(2, identity)),  MvNormal(2,1f0))
+	m₁ = SumNode([DenseNode(Chain(Unitary.LUDense(2, identity),Unitary.LUDense(2, identity)), p₁₂) for i in 1:6])
+	m2 = SumNode([DenseNode(Chain(Unitary.LUDense(2, identity), Unitary.LUDense(2, identity)), m₁) for i in 1:6])
+	SumNode([DenseNode(Chain(Unitary.LUDense(2, identity), Unitary.LUDense(2, identity)), m2) for i in 1:6])
+end
+
+function buildm3_bf()
 	p₁₂ = DenseNode(Chain(Unitary.SVDDense(2, selu, :butterfly), Unitary.SVDDense(2, identity, :butterfly)),  MvNormal(2,1f0))
 	m₁ = SumNode([DenseNode(Chain(Unitary.SVDDense(2, identity, :butterfly),Unitary.SVDDense(2, identity, :butterfly)), p₁₂) for i in 1:6])
 	m2 = SumNode([DenseNode(Chain(Unitary.SVDDense(2, identity, :butterfly), Unitary.SVDDense(2, identity, :butterfly)), m₁) for i in 1:6])
 	SumNode([DenseNode(Chain(Unitary.SVDDense(2, identity, :butterfly), Unitary.SVDDense(2, identity, :butterfly)), m2) for i in 1:6])
 end
-
-# function build1dmixture()
-# 	SumNode([
-# 		DenseNode(Chain(Unitary.SVDDense(1, tanh, :householder), Unitary.SVDDense(1, identity, :householder)),  MvNormal(1,1f0)),
-# 		DenseNode(Unitary.SVDDense(1, identity, :householder),  MvNormal(1,1f0))
-# 	])
-# end
-
-# function buildm2(n)
-# 	p₁₂ = ProductNode((build1dmixture(), build1dmixture()))
-# 	m = SumNode([DenseNode(Unitary.SVDDense(2, identity, :householder), p₁₂) for i in 1:n])
-# 	m
-# end
 
 
 ###############################################################################
@@ -82,7 +61,7 @@ end
 ###############################################################################
 x = flower2(1000, npetals = 9)
 model = buildm(9)
-SumDenseProduct.initpp2!(model, x, 9)
+#SumDenseProduct.initpp2!(model, x, 9)
 history = fit!(model, x, 64, 10000, 100; gradmethod = :exact, minimum_improvement = -1e10, opt = ADAM())
 plot_contour(model, x);
 title!("non-normal mixture")
