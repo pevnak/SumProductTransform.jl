@@ -5,7 +5,7 @@ function initpp!(m::DenseNode, X, shared = :none)
 	initpp!(m.p, X, shared)
 end
 
-function _initpp!(m::DenseNode{SVDDense{U, D, U, B, S},P}, X)  where {U<: Unitary.InPlaceUnitaryButterfly,D, P, B, S}
+function _initpp!(m::DenseNode{SVDDense{U, D, U, B, S},P}, X)  where {U<: Unitary.Butterfly,D, P, B, S}
 	m.m.b .= - mean(X, dims = 2)[:]
 	m.m.u.θs .= 0
 	m.m.v.θs .= 0
