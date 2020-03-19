@@ -45,6 +45,11 @@ xtrn = flower2(10000, npetals = 9)
 xtst = flower2(10000, npetals = 9)
 
 model = sptn(2, 9, 3)
+logpdf(model, xtrn[:,1:100 ])
+
+pa =  SumDenseProduct.samplepath(model)
+SumDenseProduct.pathlogpdf(model, xtrn[:,1:100 ], pa)
+
 history = fit!(model, xtrn, 100, 20000, 0; gradmethod = :exact, minimum_improvement = -1e10, opt = ADAM())
 p = plot_contour(model, xtst, "spn - $(n)")
 display(p)
