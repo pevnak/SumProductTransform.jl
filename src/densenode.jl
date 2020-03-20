@@ -8,7 +8,7 @@ Flux.@functor DenseNode
 
 
 Distributions.logpdf(m::DenseNode, x::AbstractVector) = logpdf(m, reshape(x, :, 1))[1]
-Distributions.logpdf(m::DenseNode, x::AbstractVector, s::Scope) = logpdf(m, reshape(x, :, 1))[1]
+Distributions.logpdf(m::DenseNode, x::AbstractVector, s::NoScope) = logpdf(m, reshape(x, :, 1))[1]
 function Distributions.logpdf(m::DenseNode, x::AbstractMatrix{T}) where {T}
 	x, l = m.m((x,zero(T)))
 	logpdf(m.p, x) .+ l[:]

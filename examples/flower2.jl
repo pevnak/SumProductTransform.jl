@@ -2,7 +2,7 @@ using ToyProblems, Distributions, SumDenseProduct, Unitary, Flux, Setfield
 using Flux:throttle
 using SumDenseProduct: fit!, mappath, samplepath
 using ToyProblems: flower2
-using Unitary: ScaleShift, SVDDense
+using Unitary: ScaleShift, SVDDense, LUDense
 
 using Plots
 plotly()
@@ -51,9 +51,7 @@ pa =  SumDenseProduct.samplepath(model)
 SumDenseProduct.pathlogpdf(model, xtrn[:,1:100 ], pa)
 
 history = fit!(model, xtrn, 100, 20000, 0; gradmethod = :exact, minimum_improvement = -1e10, opt = ADAM())
-p = plot_contour(model, xtst, "spn - $(n)")
+p = plot_contour(model, xtst, "sptn")
 display(p)
-println("sptn-$(n): mean log-likelihood= ",mean(logpdf(model, xtst)))
-push!(sptn_models, model)
 
 

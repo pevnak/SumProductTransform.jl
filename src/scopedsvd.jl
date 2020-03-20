@@ -33,3 +33,9 @@ Base.getindex(a::DiagonalRectangular, s::Scope) =
 	DiagonalRectangular(a.d[s.dims], length(s.dims), length(s.dims))
 Base.getindex(a::SVDDense, s::Scope) = 
 	SVDDense(a.u[s], a.d[s], a.v[s], a.b[s.dims], a.σ)
+
+
+function (m::Unitary.LUDense)(xx::Tuple{A,B,S}) where {A, B, S<:NoScope}
+	x, logdet, s = xx
+	return(m((x, logdet))...,s)
+end
