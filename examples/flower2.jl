@@ -38,6 +38,14 @@ function sptn(d, n, l)
 	return(m)
 end
 
+function sptn(d, n, l)
+	m = DenseNode(ScaleShift(d),  MvNormal(d,1f0))
+	for i in 1:l
+		m = SumNode([DenseNode(LUDense(2, identity), m) for i in 1:n])
+	end
+	return(m)
+end
+
 ###############################################################################
 #			non-normal mixtures
 ###############################################################################
