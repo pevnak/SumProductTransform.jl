@@ -13,13 +13,13 @@ components = tuple([DenseNode(Unitary.SVDDense(2, identity, :butterfly), MvNorma
 ps = Flux.params(components)
 opt = ADAM()
 
-for i in 1:10000
+for i in 1:20000
 	global α, components, opt
 	ρ = vcat(map(c -> Matrix(logpdf(c, x)'), components)...)
-	ρ .+= e_dirichlet(α)
+	# ρ .+= e_dirichlet(α)
 	r = ρ ./ sum(ρ, dims = 1)
 	α = α₀ + sum(r, dims = 2)[:]
-	ed = e_dirichlet(α)
+	# ed = e_dirichlet(α)
 
 	r = transpose(r)
 	gs = gradient(() -> - sum(r .* hcat(map(c -> logpdf(c, x), components)...)), ps)

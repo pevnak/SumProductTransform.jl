@@ -19,8 +19,8 @@ for i in 1:10000
 	global τ, x
 	gs = gradient(ps) do 
 		α₊ = q(x)
-		# z = transpose(hard_max(sample_concrete(α₊, τ), 1))
-		z = transpose(sample_concrete(α₊, τ))
+		z = transpose(hard_max(sample_concrete(α₊, τ), 1))
+		# z = transpose(sample_concrete(α₊, τ))
 		- mean(z .* hcat(map(c -> logpdf(c, x), components)...))
 	end
 
