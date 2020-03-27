@@ -19,9 +19,11 @@ for i in 1:10000
 	ρ .+= e_dirichlet(α)
 	r = ρ ./ sum(ρ, dims = 1)
 	α = α₀ + sum(r, dims = 2)[:]
-	pii = rand(Distributions.Dirichlet(α))
-	logπ = Matrix(transpose(log.(pii)))
-	gs = gradient(() -> - sum(logsumexp(logπ .+ hcat(map(c -> logpdf(c, x), components)...), dims = 2)), ps)
+	ed = e_dirichlet(α)
+
+	r = transpose(r)
+	gs = gradient(() -> - sum(r .* hcat(map(c -> logpdf(c, x), components)...)), ps)
+	# gs = gradient(() -> - sum(logsumexp(ed .+ r .+ hcat(map(c -> logpdf(c, x), components)...), dims = 2)), ps)
 	Flux.Optimise.update!(opt, ps, gs)
 	mod(i, 1000) == 0 && @show mean(log_likelihood(components, α, x))
 end
