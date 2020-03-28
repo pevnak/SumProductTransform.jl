@@ -53,15 +53,15 @@ function ∇log_samplezi(α, z)
 end
 
 
-function sample_concrete(α::Vector, τ, n)
-	u = rand(Gumbel(), length(α), n)
-	x = (log.(α) .+ u) ./ τ
+function sample_concrete(logα::Vector, τ, n)
+	u = rand(Gumbel(), length(logα), n)
+	x = (logα .+ u) ./ τ
 	softmax(x)
 end
 
-function sample_concrete(α::Matrix, τ)
-	u = rand(Gumbel(), size(α)...)
-	x = (log.(α) .+ u) ./ τ
+function sample_concrete(logα::Matrix, τ)
+	u = rand(Gumbel(), size(logα)...)
+	x = (logα .+ u) ./ τ
 	softmax(x)
 end
 
@@ -70,7 +70,7 @@ function hard_max(x, dims)
 	sparse(i, 1:size(x,2), true, size(x)...)
 end
 
-Zygote.@adjoint function hard_max(x, dims)
+Zygote.@adjoint function hard_max(x; dims)
 	i = mapslices(argmax, x, dims = dims)[:]
 	o = sparse(i, 1:size(x,2), true, size(x)...)
 	o, Δ -> (Δ .* o, nothing)
