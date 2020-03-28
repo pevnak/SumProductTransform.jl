@@ -13,11 +13,18 @@ function kldir(α, β)
 	loggamma(sum(α)) - loggamma(sum(β)) - sum(loggamma.(α)) + sum(loggamma.(β)) + sum((α .- β) .* (digamma.(α) .- digamma(sum(α))));
 end
 
+function softmax_log_likelihood(components, α, x)
+	w = α .- logsumexp(α, dims = 1)
+	lkl = transpose(hcat(map(c -> logpdf(c, x) ,components)...))
+	logsumexp(w .+ lkl, dims = 1)[:]
+end
+
 function sample_log_likelihood(components, α, x)
 	π = rand(Distributions.Dirichlet(α))
 	logπ = Matrix(transpose(log.(π)))
 	logsumexp(logπ .+ hcat(map(c -> logpdf(c, x), components)...), dims = 2)
 end
+
 
 function log_likelihood(components, α, x, r = 100) 
 	mean(sample_log_likelihood(components, α, x) for _ in 1:100)

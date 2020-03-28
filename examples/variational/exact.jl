@@ -27,5 +27,6 @@ for i in 1:20000
 	Flux.Optimise.update!(opt, ps, gs)
 	mod(i, 1000) == 0 && @show mean(log_likelihood(components, α, x))
 end
-# model = SumNode([DenseNode(Unitary.SVDDense(2, identity, :butterfly), MvNormal(2,1f0)) for _ in 1:K])
-# fit!(model, x, 100, 10000, 0; gradmethod = :exact, minimum_improvement = -1e10, opt = ADAM())
+
+model = SumNode([DenseNode(Unitary.SVDDense(2, identity, :butterfly), MvNormal(2,1f0)) for _ in 1:K])
+fit!(model, x, 100, 10000, 0; gradmethod = :exact, minimum_improvement = -1e10, opt = ADAM())

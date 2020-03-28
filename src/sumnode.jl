@@ -75,9 +75,8 @@ Base.rand(m::SumNode) = rand(m.components[sample(Weights(m.prior))])
 """
 function Distributions.logpdf(m::SumNode, x, s::AbstractScope = NoScope())
 	lkl = transpose(hcat(map(c -> logpdf(c, x, s) ,m.components)...))
-	w = softmax(m.prior) .+ 0.001f0
-	w = w ./ sum(w)
-	logsumexp(log.(w .+ 0.001f0) .+ lkl, dims = 1)[:]
+	w = m.prior .- logsumexp(m.prior)
+	logsumexp(w .+ lkl, dims = 1)[:]
 end
 
 function updateprior!(ps::Priors, m::SumNode, path)

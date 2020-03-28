@@ -16,21 +16,13 @@ push!(ps, Flux.params(q))
 
 opt = ADAM()
 for i in 1:10000
-	global τ, x
 	gs = gradient(ps) do
-		# α₊ = q(x)
-		w = m.prior .- logsumexp(m.prior)
-		logsumexp(w .+ lkl, dims = 1)[:]
- 
-		# z = transpose(hard_max(sample_concrete(α₊, τ), 1))
-		# z = transpose(sample_concrete(α₊, τ))
-		- mean(z .* hcat(map(c -> logpdf(c, x), components)...))
+		- mean(softmax_log_likelihood(components, q(x), x))
 	end
 
 	Flux.Optimise.update!(opt, ps, gs)
 	if mod(i, 100) == 0 
-		τ /= 2
-		@show mean(log_likelihood(components, softplus.(α), x))
+		@show mean(softmax_log_likelihood(components, q(x), x))
 	end
 end
 
