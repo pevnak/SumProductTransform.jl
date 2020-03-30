@@ -26,15 +26,19 @@ for i in 1:10000
 	gs = gradient(ps) do
 		α = q(x)
 
-		z = sample_concrete(α, τ)
-		- mean(softmax_log_likelihood(components, log.(z), x))
-		# z = hard_max(sample_concrete(α, τ), 1)
-		# - log_likelihoodz(z, components, x)
+		# z = sample_concrete(α, τ)
+		# - mean(softmax_log_likelihood(components, log.(z), x))
+		z = hard_max(sample_concrete(α, τ), 1)
+		- log_likelihoodz(z, components, x)
 	end
 
 	Flux.Optimise.update!(opt, ps, gs)
-	if mod(i, 5000) == 0 
-		τ /= 2
+	if mod(i, 1000) == 0 
 		@show mean(softmax_log_likelihood(components, q(x), x))
+		m = SumNode(collect(components), log.(mean(softmax(q(x)), dims = 2)[:]))
+		@show mean(logpdf(m, x))
+	end
+	if mod(i, 1000) == 0 
+		# τ /= 2
 	end
 end

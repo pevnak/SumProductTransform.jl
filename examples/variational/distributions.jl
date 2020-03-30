@@ -65,7 +65,7 @@ function sample_concrete(logα::Matrix, τ)
 	softmax(x)
 end
 
-function hard_max(x, dims)
+function hard_max(x; dims)
 	i = mapslices(argmax, x, dims = dims)[:]
 	sparse(i, 1:size(x,2), true, size(x)...)
 end

@@ -60,14 +60,6 @@ pathcount(m) = 1
 pathlogpdf(m, x, path) = logpdf(m, x)
 pathlogpdf(m, x, path, s::AbstractScope) = logpdf(m, x)
 
-"""
-    path = samplepath(m)
-
-    sample a path trough the model, which can be used by pathlogpdf to calculate the
-    pdf along this path.
-"""
-samplepath(m) = tuple()
-
 _mappath(m, x, s::AbstractScope = NoScope())= (logpdf(m,x), fill(tuple(), size(x, 2)))
 
 batchpathlogpdf(m, x, path) = map(i -> pathlogpdf(m, x[:,i:i], path[i])[1], 1:length(path))
@@ -100,13 +92,23 @@ include("threadedgrads.jl")
 include("sumnode.jl")
 include("densenode.jl")
 include("productnode.jl")
+include("learnableproductnode.jl")
 include("modelbuilders.jl")
 include("fit.jl")
 include("smartinit.jl")
 include("fitting/em.jl")
 
 
-export SumNode, DenseNode, ProductNode
+"""
+    path = samplepath(m)
+
+    sample a path trough the model, which can be used by pathlogpdf to calculate the
+    pdf along this path.
+"""
+samplepath(m) = tuple()
+samplepath(m, s::AbstractScope) = (s,)
+
+export SumNode, DenseNode, ProductNode, LearnableProductNode
 export densesharedmixture, nosharedmixture, allsharedmixture, priors, updatelatent!, buildmixture, pathcount, batchlogpdf
 export em!, fit!
 

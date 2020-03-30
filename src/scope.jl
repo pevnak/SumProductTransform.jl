@@ -1,5 +1,36 @@
 abstract type AbstractScope end
 
+"""
+struct Scope <: AbstractScope
+	dims::Vector{Int}
+	n::Int
+
+	active::Vector{Bool}
+	idxmap::Vector{Int}
+end
+
+The scoping through "Scope" supports to restrict the calculation 
+of likelihood only to subset of random variables. The Scoping has 
+to be supported by the the Transformation nodes and by lists.
+
+For example below, we have distribution on four variables
+```
+s = Scope(4)
+```
+We can restrict the scope to dimensions [1,3] as 
+```
+julia> s = s[[1,3]]
+Scope([1, 3], 4, Bool[1, 0, 1, 0], [1, 0, 2, 0])
+```
+and it can restricted even further to just third coordinate
+```
+julia> s[[2]]
+Scope([3], 4, Bool[0, 0, 1, 0], [0, 0, 1, 0])
+```
+Notice that the indexing is translated, such that the scope 
+with two active variables has only two indexes and they are 
+translated to correct indexes.
+"""
 struct Scope <: AbstractScope
 	dims::Vector{Int}
 	n::Int
@@ -25,6 +56,8 @@ struct NoScope <: AbstractScope
 end
 
 
+active(s::Scope) = s.active
+active(s::FullScope) = fill(true, s.n)
 
 Base.getindex(s::FullScope, dims) = Scope(collect(1:s.n)[dims], s.n)
 Base.getindex(s::Scope, dims) = Scope(s.dims[dims], s.n)

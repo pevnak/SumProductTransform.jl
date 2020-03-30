@@ -35,8 +35,8 @@ Flux.@functor SumNode
 	logpdf of samples `x` calculated along the `path`, which determine only 
 	subset of models
 """
-function pathlogpdf(p::SumNode, x, path, s::AbstractScope = NoScope()) 
-	pathlogpdf(p.components[path[1]], x, path[2], s)
+function pathlogpdf(p::SumNode, x, path) 
+	pathlogpdf(p.components[path[1]], x, path[2])
 end
 
 """
@@ -47,6 +47,11 @@ end
 function samplepath(m::SumNode) 
 	i = sample(Weights(softmax(m.prior)))
 	(i, samplepath(m.components[i]))
+end
+
+function samplepath(m::SumNode, s:: AbstractScope) 
+	i = sample(Weights(softmax(m.prior)))
+	(i, samplepath(m.components[i], s))
 end
 
 function _mappath(m::SumNode, x::AbstractArray{T}, s::AbstractScope) where {T}

@@ -8,12 +8,12 @@ function (m::Unitary.SVDDense{U,D,U,F})(xx::Tuple{A,B,S}) where {U<:Butterfly, D
 	(m.σ.(pre), logdet .+ sum(log.(g), dims = 1) .+ _logabsdet(m.d, s), s)
 end
 
-function (m::Unitary.SVDDense{U,D,U,F})(xx::Tuple{A,B,S}) where {U<:Butterfly, D, F, A, B, S<:NoScope}
+function (m::Unitary.SVDDense{U,D,U,F})(xx::Tuple{A,B,S}) where {U<:Butterfly, D, F, A, B, S<:Union{NoScope, FullScope}}
 	x, logdet, s = xx
 	return(m((x, logdet))...,s)
 end
 
-function (m::Unitary.ScaleShift{U,D,F})(xx::Tuple{A,B,S}) where {U<:DiagonalRectangular, D, F, A, B, S<:NoScope}
+function (m::Unitary.ScaleShift{U,D,F})(xx::Tuple{A,B,S}) where {U<:DiagonalRectangular, D, F, A, B, S<:Union{NoScope, FullScope}}
 	x, logdet, s = xx
 	return(m((x, logdet))...,s)
 end
