@@ -20,18 +20,13 @@ function Distributions.logpdf(m::DenseNode, x::AbstractMatrix{T}, s::AbstractSco
 end
 
 function pathlogpdf(m::DenseNode, x::AbstractMatrix{T}, path) where {T}
-	x, l = m.m((x,zero(T)))
-	pathlogpdf(m.p, x, path) .+ l[:]
-end
-
-function pathlogpdf(m::DenseNode, x::AbstractMatrix{T}, path) where {T}
 	s = path[1]
 	x, l, _ = m.m((x, zero(T), s))
 	pathlogpdf(m.p, x, path[2]) .+ l[:]
 end
 
 pathcount(m::DenseNode) = pathcount(m.p)
-samplepath(m::DenseNode) = samplepath(m.p)
+samplepath(m::DenseNode) = (NoScope(), samplepath(m.p))
 samplepath(m::DenseNode, s::AbstractScope) = (s, samplepath(m.p, s))
 updateprior!(ps::Priors, m::DenseNode, path) = updateprior!(ps, m.p, path)
 

@@ -44,14 +44,9 @@ end
 
 	samples path determining subset of the model
 """
-function samplepath(m::SumNode) 
+function samplepath(m::SumNode, s...) 
 	i = sample(Weights(softmax(m.prior)))
-	(i, samplepath(m.components[i]))
-end
-
-function samplepath(m::SumNode, s:: AbstractScope) 
-	i = sample(Weights(softmax(m.prior)))
-	(i, samplepath(m.components[i], s))
+	(i, samplepath(m.components[i], s...))
 end
 
 function _mappath(m::SumNode, x::AbstractArray{T}, s::AbstractScope) where {T}
