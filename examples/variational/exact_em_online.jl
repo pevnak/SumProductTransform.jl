@@ -23,19 +23,22 @@ opt = ADAM()
 l(x,y)=logpdf(SumNode(collect(comps)),[x;y])[1]
 contour(-10.0:0.1:10,-10.0:0.1:10,l,levels=50)
 
-niter = 10000;
+Nci = 5;
+Nxi = 50;
+ci = Int.(1:Nci)
+xi = Int.(1:Nxi)
+niter = 1000;
+loss(ri,xind,cind) = - sum(ri[cind,:] .* hcat(map(c->logpdf(c, x[:,xind]),comps[cind])...)')
 for i in 1:niter
-	global α, comps, opt, ρ
-	if true
-		ci = Int.(round.((K-1)*rand(5)).+1)
-		xi = Int.(round.((Ndat-1)*rand(50)).+1)
-	end
+	global α, comps, opt, ρ, ci, xi
+	ci .= Int.(round.((K-1)*rand(Nci)).+1)
+	xi .= Int.(round.((Ndat-1)*rand(Nxi)).+1)
 
 	#update statistics
-    ρi = vcat(map(c->Matrix(logpdf(c, x[:,xi)'),comps[ci])...)
+    ρi = vcat(map(c->Matrix(logpdf(c, x[:,xi])'),comps[ci])...)
 	ρi .+= log.(α[ci])
 	if false
-		ρ[ci,xi[:]] = ϕρ*ρ[ci,xi+(1-ϕρ)*ρi
+		ρ[ci,xi[:]] = ϕρ*ρ[ci,xi]+(1-ϕρ)*ρi
 		eρi = exp.(ρ[:,xi])
 		ri = eρi ./ sum(eρi, dims = 1)
 		α =  ϕα*α+(1-ϕα)*sum(ri,dims=2)[:]
@@ -46,7 +49,7 @@ for i in 1:niter
 		α =  ϕα*α+sum(ri,dims=2)[:]
 	end
 
-	gs = gradient(() -> - sum(ri[ci,:].* hcat(map(c->logpdf(c, x[:,xi[:]]),comps[ci])...)'), ps)
+	gs = gradient(() -> loss(ri,xi,ci) , ps)
 	# gs = gradient(() -> - sum(logsumexp(ed .+ r .+ hcat(map(c -> logpdf(c, x), comps)...), dims = 2)), ps)
 	Flux.Optimise.update!(opt, ps, gs)
 	mod(i, 1000) == 0 && @show mean(log_likelihood(comps, α, x))
