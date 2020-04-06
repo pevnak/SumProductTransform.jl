@@ -21,16 +21,21 @@ opt = ADAM()
 # fit!(model, x, 100, 10000, 0; gradmethod = :exact, minimum_improvement = -1e10, opt = ADAM())
 
 l(x,y)=logpdf(SumNode(collect(comps)),[x;y])[1]
-contour(-10.0:0.1:10,-10.0:0.1:10,l,levels=50)
+# contour(-10.0:0.1:10,-10.0:0.1:10,l,levels=50)
 
 Nci = 5;
 Nxi = 50;
 ci = Int.(1:Nci)
 xi = Int.(1:Nxi)
 niter = 1000;
-loss(ri,xind,cind) = - sum(ri[cind,:] .* hcat(map(c->logpdf(c, x[:,xind]),comps[cind])...)')
+function loss(ri,xx, comps)
+	 o = hcat(map(c->logpdf(c, xx),comps)...)
+	 - sum(ri .* o')
+end
+
 for i in 1:niter
-	global α, comps, opt, ρ, ci, xi
+	global α 
+	start_time = time()
 	ci .= Int.(round.((K-1)*rand(Nci)).+1)
 	xi .= Int.(round.((Ndat-1)*rand(Nxi)).+1)
 
@@ -49,9 +54,15 @@ for i in 1:niter
 		α =  ϕα*α+sum(ri,dims=2)[:]
 	end
 
-	gs = gradient(() -> loss(ri,xi,ci) , ps)
+	xx = x[:, xi]
+	cc = comps[ci]
+	rri = ri[ci,:]
+	gs = gradient(() -> loss(rri, xx, cc), ps)
 	# gs = gradient(() -> - sum(logsumexp(ed .+ r .+ hcat(map(c -> logpdf(c, x), comps)...), dims = 2)), ps)
 	Flux.Optimise.update!(opt, ps, gs)
-	mod(i, 1000) == 0 && @show mean(log_likelihood(comps, α, x))
+	if mod(i, 1000) == 0
+		@show mean(log_likelihood(comps, α, x))
+		println("time: ",round((time() - start_time)/ 1000, digits = 2))
+	end
 end
 
