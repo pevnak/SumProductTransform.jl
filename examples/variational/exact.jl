@@ -13,8 +13,6 @@ comps = tuple([DenseNode(Unitary.SVDDense(2, identity, :butterfly), MvNormal(2,1
 ps = Flux.params(comps)
 opt = ADAM()
 
-model = SumNode(collect(comps))
-fit!(model, x, 100, 10000, 0; gradmethod = :exact, minimum_improvement = -1e10, opt = ADAM())
 
 VB = true;
 niter = 20000;
