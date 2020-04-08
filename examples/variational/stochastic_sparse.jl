@@ -25,10 +25,10 @@ end
 includet("distributions.jl")
 
 exact = false
-VB = false
-
+VB = true
 xx = flower(Float32,2000)
 xtst = flower(Float32,2000)
+
 K = 19
 repetitions = 6
 allpath = [(i, (SumDenseProduct.NoScope(), ())) for i in 1:K]
@@ -55,8 +55,7 @@ for i in 1:100000
 	gs = Flux.gradient(() -> Flux.mse(qα(x)[idxs, :], logpdfs), psα)
 	Flux.Optimise.update!(opt, psα, gs)
 
-	ρ = qα(x)
-	ρ[idxs,:] .= logpdfs
+	ρ = exact ? logpdfs :  qα(x)
 	ρ .+= VB ? e_dirichlet(α) : log.(α)
 	ρ = exp.(ρ .- maximum(ρ,dims=2))
 	r = ρ ./ sum(ρ, dims = 1)
