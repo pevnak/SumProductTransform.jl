@@ -29,7 +29,7 @@ function plot_rand(m, n)
 	scatter(xx[1,:], xx[2,:])
 end
 
-function buildmbf(n, decom = :svdgivens)
+function buildm(n, decom = :svdgivens)
 	p₁₂ = SumNode([TransformNode(Chain(Unitary.Transform(2, selu, :svdgivens), Unitary.Transform(2, identity, :svdgivens)),  MvNormal(2,1f0)) for _ in 1:2])
 	SumNode([TransformNode(Unitary.Transform(2, identity, :svdgivens), p₁₂) for i in 1:n])
 end
@@ -52,10 +52,8 @@ end
 #			non-normal mixtures
 ###############################################################################
 x = flower2(1000, npetals = 9)
-#model = buildmbf(9)
-model = buildmlu(9)
-#SumDenseProduct.initpp!(model, x, 9)
-history = fit!(model, x, 64, 10000, 100; gradmethod = :exact, minimum_improvement = -1e10, opt = ADAM())
+model = buildm(9)
+history = fit!(model, x, 64, 10000, 100; gradmethod = :auto, minimum_improvement = -1e10, opt = ADAM())
 plot_contour(model, x);
 title!("non-normal mixture")
 plot_components(model, x)
