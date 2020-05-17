@@ -16,7 +16,7 @@ C = cholesky([5 2; 2 1]).U
 x = C* randn(2,100)
 scatter(x[1,:], x[2,:])
 
-model = buildmixture(2, 1, 1, identity; sharing = :dense, firstdense = false)
+model = buildmixture(2, 1, 1, identity; sharing = :transform, firsttransform = false)
 model = model[1].c
 history = fit!(model, x, 64, 20000, 100; gradmethod = :exact, minimum_improvement = -1e10, opt = ADAM())
 visualize(model, x)

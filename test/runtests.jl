@@ -1,7 +1,7 @@
 using SumDenseProduct, Test, Distributions
 include("builder.jl")
 include("productnode.jl")
-include("maxpath.jl")
+include("maxtree.jl")
 
 
 @testset "sampling" begin
@@ -9,7 +9,7 @@ include("maxpath.jl")
 	σs = [identity, identity]
 	noise = [4,0]
 	d = 8
-	for s in [:all, :none, :dense]
+	for s in [:all, :none, :transform]
 	    m = buildmixture(d, ns, σs, noise, sharing = s)
 	    @test length(rand(m)) == 8
 	end
@@ -23,7 +23,7 @@ end
 	σs = [identity, identity]
 	noise = [4,0]
 	d = 8
-	for s in [:all, :none, :dense]
+	for s in [:all, :none, :transform]
 	    m = buildmixture(d, ns, σs, noise, sharing = s)
 	    x = randn(length(m), 100)
 	    @test logpdf(m, x) ≈ batchlogpdf(m, x, 32)
@@ -35,7 +35,7 @@ end
 	σs = [identity, identity]
 	noise = [4,0]
 	d = 8
-	for s in [:all, :none, :dense]
+	for s in [:all, :none, :transform]
 	    m = buildmixture(d, ns, σs, noise, sharing = s)
 	    x = randn(length(m), 100)
 	    segments = [i:i+9 for i in 1:10:100]

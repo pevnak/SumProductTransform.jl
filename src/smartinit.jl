@@ -1,11 +1,11 @@
 using Clustering
 
-function initpp!(m::DenseNode, X, shared = :none)
+function initpp!(m::TransformNode, X, shared = :none)
 	xx = _initpp!(m, X)
 	initpp!(m.p, X, shared)
 end
 
-function _initpp!(m::DenseNode{SVDDense{U, D, U, B, S},P}, X)  where {U<: Unitary.Butterfly,D, P, B, S}
+function _initpp!(m::TransformNode{Transform{U, D, U, B, S},P}, X)  where {U<: Unitary.UnitaryGivens,D, P, B, S}
 	m.m.b .= - mean(X, dims = 2)[:]
 	m.m.u.θs .= 0
 	m.m.v.θs .= 0
@@ -16,7 +16,7 @@ function _initpp!(m::DenseNode{SVDDense{U, D, U, B, S},P}, X)  where {U<: Unitar
 	m.m(X)
 end
 
-function _initpp!(m::DenseNode{SVDDense{U, D, U, B, S},P}, X)  where {U<: Unitary.UnitaryHouseholder,D, P, B, S}
+function _initpp!(m::TransformNode{Transform{U, D, U, B, S},P}, X)  where {U<: Unitary.UnitaryHouseholder,D, P, B, S}
 	m.m.b .= - mean(X, dims = 2)[:]
 	m.m.u.Y.Y .= 0
 	m.m.v.Y.Y .= 0

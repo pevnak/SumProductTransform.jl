@@ -37,31 +37,31 @@ batchlogpdf(p, x, bs::Int) = reduce(vcat, map(i -> logpdf(p, x[:,i]), Iterators.
 
 
 """
-    pathcount(m)
+    treecount(m)
 
-    Number of possible path of a model. For distributions it defaults to one.
+    Number of possible tree of a model. For distributions it defaults to one.
 """
-pathcount(m) = 1
+treecount(m) = 1
 
 """
-    pathlogpdf(p, x, path)
+    treelogpdf(p, x, tree)
 
-    logpdf of samples `x` calculated along the `path` determining components in sumnodes (at the moment)
+    logpdf of samples `x` calculated along the `tree` determining components in sumnodes (at the moment)
     For distributions outside the SumDenseProduct it falls back to logpdf(p, x).
 """
-pathlogpdf(m, x, path) = logpdf(m, x)
+treelogpdf(m, x, tree) = logpdf(m, x)
 
 """
-    path = samplepath(m)
+    tree = sampletree(m)
 
-    sample a path trough the model, which can be used by pathlogpdf to calculate the
-    pdf along this path.
+    sample a tree trough the model, which can be used by treelogpdf to calculate the
+    pdf along this tree.
 """
-samplepath(m) = tuple()
+sampletree(m) = tuple()
 
-_mappath(m, x)= (logpdf(m,x), fill(tuple(), size(x, 2)))
+_maptree(m, x)= (logpdf(m,x), fill(tuple(), size(x, 2)))
 
-batchpathlogpdf(m, x, path) = map(i -> pathlogpdf(m, x[:,i:i], path[i])[1], 1:length(path))
+batchtreelogpdf(m, x, tree) = map(i -> treelogpdf(m, x[:,i:i], tree[i])[1], 1:length(tree))
 
 
 _priors(m) = nothing
@@ -77,7 +77,7 @@ end
 
 include("threadedgrads.jl")
 include("sumnode.jl")
-include("densenode.jl")
+include("transformnode.jl")
 include("productnode.jl")
 include("modelbuilders.jl")
 include("fit.jl")
@@ -85,7 +85,7 @@ include("updatelatent.jl")
 include("smartinit.jl")
 
 
-export SumNode, DenseNode, ProductNode
-export densesharedmixture, nosharedmixture, allsharedmixture, priors, updatelatent!, buildmixture, pathcount, batchlogpdf, initpp!
+export SumNode, TransformNode, ProductNode
+export transformsharedmixture, nosharedmixture, allsharedmixture, priors, updatelatent!, buildmixture, treecount, batchlogpdf, initpp!
 
 end # module

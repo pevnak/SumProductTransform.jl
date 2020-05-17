@@ -34,13 +34,13 @@ x = X[:,1:100];
 x1, x2 = X[:,1:50], X[:,51:100]
 
 ps = Flux.params(model)
-batchsize, maxpath = 100, 100
+batchsize, maxtree = 100, 100
 
-SumDenseProduct.tunegrad(model, x, batchsize, maxpath, ps)
+SumDenseProduct.tunegrad(model, x, batchsize, maxtree, ps)
 
 
-bestpath = [SumDenseProduct.samplepath(model) for i in 1:size(X,2)]
-SumDenseProduct.samplinggrad(model, X, bestpath, batchsize, maxpath, ps)
+besttree = [SumDenseProduct.sampletree(model) for i in 1:size(X,2)]
+SumDenseProduct.samplinggrad(model, X, besttree, batchsize, maxtree, ps)
 # fit!(model, X, p.batchsize, p.steps; minimum_improvement = p.minimum_improvement, opt = ADAM(), debugfile = "debug_$(myid()).bson")
 
 # ProfileView.svgwrite("/tmp/profile_results.svg")

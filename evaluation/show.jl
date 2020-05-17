@@ -11,11 +11,11 @@ vae_m1 =  [0.77, 0.70, 0.85, 0.57, 0.85, 0.50, 0.49, 0.51, 0.69])
 const resultsdir = filter(isdir,["/Users/tpevny/Work/Julia/results/datasets","/mnt/output/results/datasets","/opt/output/results/datasets"])[1];
 
 function fixdir(problem)
-	files = filter(s ->endswith(s,"_stats.bson"),readdir(joinpath(resultsdir,problem,"sumdense")))
+	files = filter(s ->endswith(s,"_stats.bson"),readdir(joinpath(resultsdir,problem,"sumtransform")))
 	torepair = filter(files) do f
 		repair = false
 		try
-			BSON.@load joinpath(resultsdir, problem, "sumdense", f) stats
+			BSON.@load joinpath(resultsdir, problem, "sumtransform", f) stats
 		catch
 			repair = true
 		end 
@@ -26,7 +26,7 @@ function fixdir(problem)
 
 	for f in torepair
 		println("fixing: ",problem,"/",f)
-		ff = joinpath(resultsdir, problem, "sumdense", f)
+		ff = joinpath(resultsdir, problem, "sumtransform", f)
 		fs = replace(ff, "_stats.bson" => "_stats.jls")
 		stats = deserialize(ff)
 		serialize(fs, stats)
@@ -37,9 +37,9 @@ end
 
 function collectdir(problem)
 	fixdir(problem)
-	res = collect_results(joinpath(resultsdir,problem,"sumdense"); white_list = [:stats], valid_filetypes = ["_stats.bson"])[:,1]
-	# files = filter(s ->endswith(s,"_stats.bson"),readdir(joinpath(resultsdir,problem,"sumdense")))
-	# res = map(s -> deserialize(joinpath(resultsdir, problem, "sumdense", s)), files)
+	res = collect_results(joinpath(resultsdir,problem,"sumtransform"); white_list = [:stats], valid_filetypes = ["_stats.bson"])[:,1]
+	# files = filter(s ->endswith(s,"_stats.bson"),readdir(joinpath(resultsdir,problem,"sumtransform")))
+	# res = map(s -> deserialize(joinpath(resultsdir, problem, "sumtransform", s)), files)
 	# res = filter(s -> typeof(s) <: NamedTuple, res)
 
 	# we need to do a manual reduction with missing values
@@ -54,8 +54,8 @@ end
 
 function collectresults()
 	# problems = readdir(resultsdir);
-	# problems = filter(s -> isdir(joinpath(resultsdir, s,"sumdense")), problems); 
-	# problems = filter(s -> !isempty(readdir((joinpath(resultsdir, s,"sumdense")))), problems); 
+	# problems = filter(s -> isdir(joinpath(resultsdir, s,"sumtransform")), problems); 
+	# problems = filter(s -> !isempty(readdir((joinpath(resultsdir, s,"sumtransform")))), problems); 
 	problems = priorart[:dataset]
 	df = map(collectdir, problems)
 	reduce(vcat, df)
@@ -73,16 +73,16 @@ sensitivity(problem::String) = sensitivity(collectdir(problem))
 
 function show()
 	df = collectresults()
-	dflkl = by(df, [:dataset, :repetition], dff -> DataFrame(SumDenseLkl = dff[argmax(dff[:test_lkl]),:test_auc], n = length(dff)))
-	dflkl = by(dflkl, :dataset, dff -> DataFrame(SumDenseLkl = mean(dff[:SumDenseLkl])))
-	dfauc = by(df, [:dataset, :repetition], dff -> DataFrame(SumDenseAUC = dff[argmax(dff[:train_auc]),:test_auc], n = length(dff)))
-	dfauc = by(dfauc, :dataset, dff -> DataFrame(SumDenseAUC = mean(dff[:SumDenseAUC])))
+	dflkl = by(df, [:dataset, :repetition], dff -> DataFrame(SumTransformLkl = dff[argmax(dff[:test_lkl]),:test_auc], n = length(dff)))
+	dflkl = by(dflkl, :dataset, dff -> DataFrame(SumTransformLkl = mean(dff[:SumTransformLkl])))
+	dfauc = by(df, [:dataset, :repetition], dff -> DataFrame(SumTransformAUC = dff[argmax(dff[:train_auc]),:test_auc], n = length(dff)))
+	dfauc = by(dfauc, :dataset, dff -> DataFrame(SumTransformAUC = mean(dff[:SumTransformAUC])))
 	dff = join(dflkl,dfauc, on = :dataset)
 	dff = join(dff,priorart, on = :dataset)
 	h1 = Highlighter(
 		f = (data, i, j) -> data[i,j] == maximum(dff[i, 2:end]),
 		crayon = crayon"yellow bold")
 	pretty_table(dff;  formatter=ft_round(2), highlighters = h1)
-	dff = dff[:,[:dataset, :SumDenseAUC,:iforest,:knn,:vae_m1]]
+	dff = dff[:,[:dataset, :SumTransformAUC,:iforest,:knn,:vae_m1]]
 	pretty_table(dff;  formatter=ft_round(2), highlighters = h1)
 end

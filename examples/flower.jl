@@ -17,13 +17,13 @@ end
 #			Let's do a single mixture
 ###############################################################################
 x = flower(200)
-model = buildmixture(2, 8, 1, identity; sharing = :dense, firstdense = false)
+model = buildmixture(2, 8, 1, identity; sharing = :transform, firsttransform = false)
 history = fit!(model, x, 64, 20000, 100; gradmethod = :exact, minimum_improvement = -1e10, opt = ADAM())
 visualize(model, x)
 ###############################################################################
 #			Let's try two nested mixtures
 ###############################################################################
-model = buildmixture(2, 4, 2, identity; sharing = :dense, firstdense = false)
+model = buildmixture(2, 4, 2, identity; sharing = :transform, firsttransform = false)
 history = fit!(model, x, 64, 20000, 100; gradmethod = :exact, minimum_improvement = -1e10, opt = ADAM())
 visualize(model, x)
 

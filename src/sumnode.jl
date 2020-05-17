@@ -29,40 +29,40 @@ Flux.@functor SumNode
 Flux.trainable(m::SumNode) = (m.components,)
 
 """
-	pathlogpdf(p::SumNode, x, path::Vector{Vector{Int}})
+	treelogpdf(p::SumNode, x, tree::Vector{Vector{Int}})
 
-	logpdf of samples `x` calculated along the `path`, which determine only 
+	logpdf of samples `x` calculated along the `tree`, which determine only 
 	subset of models
 """
-function pathlogpdf(p::SumNode, x, path) 
-	pathlogpdf(p.components[path[1]], x, path[2])
+function treelogpdf(p::SumNode, x, tree) 
+	treelogpdf(p.components[tree[1]], x, tree[2])
 end
 
 """
-	samplepath(m)
+	sampletree(m)
 
-	samples path determining subset of the model
+	samples tree determining subset of the model
 """
-function samplepath(m::SumNode) 
+function sampletree(m::SumNode) 
 	i = rand(1:length(m.components))
-	(i, samplepath(m.components[i]))
+	(i, sampletree(m.components[i]))
 end
 
-function _mappath(m::SumNode, x::AbstractArray{T}) where {T}
+function _maptree(m::SumNode, x::AbstractArray{T}) where {T}
 	n = length(m.components)
-	lkl, path = Vector{Vector{T}}(undef, n), Vector{Any}(undef, n)
+	lkl, tree = Vector{Vector{T}}(undef, n), Vector{Any}(undef, n)
 	Threads.@threads for i in 1:n
-		lkl[i], path[i] = _mappath(m.components[i], x)
+		lkl[i], tree[i] = _maptree(m.components[i], x)
 	end
 	lkl = transpose(hcat(lkl...))
 	y = Flux.onecold(softmax(lkl, dims = 1))
 	o = Flux.onehotbatch(y, 1:n)
 	o =  sum(o .* lkl, dims = 1)[:]
-	path = [(y[i], path[y[i]][i]) for i in 1:size(x,2)]
-	return(o, path)
+	tree = [(y[i], tree[y[i]][i]) for i in 1:size(x,2)]
+	return(o, tree)
 end
 
-pathcount(m::SumNode) = mapreduce(pathcount, +, m.components)
+treecount(m::SumNode) = mapreduce(treecount, +, m.components)
 
 Base.rand(m::SumNode) = rand(m.components[sample(Weights(m.prior))])
 
@@ -99,10 +99,10 @@ function normalizelatent!(m::SumNode)
 	foreach(normalizelatent!, m.components) 
 end
 
-function _updatelatent!(m::SumNode, path)
-	component = path[1]
+function _updatelatent!(m::SumNode, tree)
+	component = tree[1]
 	m.prior[component] += 1
-	_updatelatent!(m.components[component], path[2])
+	_updatelatent!(m.components[component], tree[2])
 end
 
 _priors(m::SumNode) = m.prior

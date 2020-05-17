@@ -1,6 +1,6 @@
 using ToyProblems, Distributions, SumDenseProduct, Unitary, Flux, Setfield
 using Flux:throttle
-using SumDenseProduct: fit!, mappath, samplepath
+using SumDenseProduct: fit!, maptree, sampletree
 using ToyProblems: flower2
 
 using Plots
@@ -17,10 +17,10 @@ function plot_contour(m, x)
 end
 
 function plot_components(m, x)
-	path = hash.(mappath(m, x)[2])
-	u = unique(path)
+	tree = hash.(maptree(m, x)[2])
+	u = unique(tree)
 	hash2int = Dict(u[i] => i for i in 1:length(u))
-	i = [hash2int[k] for k in path]
+	i = [hash2int[k] for k in tree]
 	scatter(x[1,:], x[2,:], color = i)
 end
 
@@ -29,34 +29,22 @@ function plot_rand(m, n)
 	scatter(xx[1,:], xx[2,:])
 end
 
-function buildmlu(n)
-	p₁₂ = SumNode([DenseNode(Chain(Unitary.LUDense(2, selu), Unitary.LUDense(2, identity)),  MvNormal(2,1f0)) for _ in 1:2])
-	SumNode([DenseNode(Unitary.LUDense(2, identity), p₁₂) for i in 1:n])
+function buildmbf(n, decom = :svdgivens)
+	p₁₂ = SumNode([TransformNode(Chain(Unitary.Transform(2, selu, :svdgivens), Unitary.Transform(2, identity, :svdgivens)),  MvNormal(2,1f0)) for _ in 1:2])
+	SumNode([TransformNode(Unitary.Transform(2, identity, :svdgivens), p₁₂) for i in 1:n])
 end
 
-function buildmbf(n)
-	p₁₂ = SumNode([DenseNode(Chain(Unitary.SVDDense(2, selu, :butterfly), Unitary.SVDDense(2, identity, :butterfly)),  MvNormal(2,1f0)) for _ in 1:2])
-	SumNode([DenseNode(Unitary.SVDDense(2, identity, :butterfly), p₁₂) for i in 1:n])
+function buildm2(decom = :svdgivens)
+	p₁₂ = TransformNode(Chain(Unitary.Transform(2, selu, decom), Unitary.Transform(2, identity, decom)),  MvNormal(2,1f0))
+	m₁ = SumNode([TransformNode(Chain(Unitary.Transform(2, identity, decom),Unitary.Transform(2, identity, decom)), p₁₂) for i in 1:9])
+	SumNode([TransformNode(Chain(Unitary.Transform(2, identity, decom), Unitary.Transform(2, identity, decom)), m₁) for i in 1:9])
 end
 
-function buildm2()
-	p₁₂ = DenseNode(Chain(Unitary.LUDense(2, selu), Unitary.LUDense(2, identity)),  MvNormal(2,1f0))
-	m₁ = SumNode([DenseNode(Chain(Unitary.LUDense(2, identity),Unitary.LUDense(2, identity)), p₁₂) for i in 1:9])
-	SumNode([DenseNode(Chain(Unitary.LUDense(2, identity), Unitary.LUDense(2, identity)), m₁) for i in 1:9])
-end
-
-function buildm3_lu()
-	p₁₂ = DenseNode(Chain(Unitary.LUDense(2, selu), Unitary.LUDense(2, identity)),  MvNormal(2,1f0))
-	m₁ = SumNode([DenseNode(Chain(Unitary.LUDense(2, identity),Unitary.LUDense(2, identity)), p₁₂) for i in 1:6])
-	m2 = SumNode([DenseNode(Chain(Unitary.LUDense(2, identity), Unitary.LUDense(2, identity)), m₁) for i in 1:6])
-	SumNode([DenseNode(Chain(Unitary.LUDense(2, identity), Unitary.LUDense(2, identity)), m2) for i in 1:6])
-end
-
-function buildm3_bf()
-	p₁₂ = DenseNode(Chain(Unitary.SVDDense(2, selu, :butterfly), Unitary.SVDDense(2, identity, :butterfly)),  MvNormal(2,1f0))
-	m₁ = SumNode([DenseNode(Chain(Unitary.SVDDense(2, identity, :butterfly),Unitary.SVDDense(2, identity, :butterfly)), p₁₂) for i in 1:6])
-	m2 = SumNode([DenseNode(Chain(Unitary.SVDDense(2, identity, :butterfly), Unitary.SVDDense(2, identity, :butterfly)), m₁) for i in 1:6])
-	SumNode([DenseNode(Chain(Unitary.SVDDense(2, identity, :butterfly), Unitary.SVDDense(2, identity, :butterfly)), m2) for i in 1:6])
+function buildm3(decom=:svdgivens)
+	p₁₂ = TransformNode(Chain(Unitary.Transform(2, selu, decom), Unitary.Transform(2, identity, decom)),  MvNormal(2,1f0))
+	m₁ = SumNode([TransformNode(Chain(Unitary.Transform(2, identity, decom),Unitary.Transform(2, identity, decom)), p₁₂) for i in 1:6])
+	m2 = SumNode([TransformNode(Chain(Unitary.Transform(2, identity, decom), Unitary.Transform(2, identity, decom)), m₁) for i in 1:6])
+	SumNode([TransformNode(Chain(Unitary.Transform(2, identity, decom), Unitary.Transform(2, identity, decom)), m2) for i in 1:6])
 end
 
 
@@ -91,21 +79,21 @@ function iteratedlearning(model, x, reset_threshold = 0.01)
 	history = fit!(model, x, 64, 5000, 20; gradmethod = :sampling, minimum_improvement = -1e10, opt = ADAM())
 	for i in 1:10 
 		@show mean(logpdf(model, x))
-		os, paths = mappath(model, x)
+		os, trees = maptree(model, x)
 		i = argmin(os)
-		path = paths[i]
+		tree = trees[i]
 		xx = x[:,i:i]
 		if minimum(model.prior) < reset_threshold
 			ci = argmin(model.prior)
-			newpath = @set path[1] = ci
+			newtree = @set tree[1] = ci
 			ps = Flux.params(model[ci].c.m)
-			SumDenseProduct.initpath!(model, xx, newpath, ps , verbose = true)
+			SumDenseProduct.inittree!(model, xx, newtree, ps , verbose = true)
 		end
 		if minimum(model[1].c.p.prior) < reset_threshold
 			ci = argmin(model[1].c.p.prior)
-			newpath = @set path[2][1] = ci
+			newtree = @set tree[2][1] = ci
 			ps = Flux.params(model[1].c.p[ci].c.m)
-			SumDenseProduct.initpath!(model, xx, newpath, ps , verbose = true)
+			SumDenseProduct.inittree!(model, xx, newtree, ps , verbose = true)
 		end
 		updatelatent!(model, x)
 		@show mean(logpdf(model, x))
@@ -131,7 +119,7 @@ title!("non-normal mixture2")
 ###############################################################################
 #			normal mixture
 ###############################################################################
-model = buildmixture(2, 18, 1, identity; sharing = :dense, firstdense = false)
+model = buildmixture(2, 18, 1, identity; sharing = :transform, firsttransform = false)
 history = fit!(model, x, 64, 20000, 100; gradmethod = :exact, minimum_improvement = -1e10, opt = ADAM())
 plot_contour(model, x);
 title!("normal mixture")

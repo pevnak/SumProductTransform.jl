@@ -12,10 +12,10 @@ function nosharedmixture(d::Int, ns::Vector{Int}, σs::Vector, noise::Vector, p 
 	n, σ, noisedim = ns[1], σs[1], noise[1]
 	components = if length(ns) == 1
 		noisedim > 0 && @warn "We ignore the noise in last layer (they are independent anyway)"
-		[DenseNode(Chain(Unitary.SVDDense(d, σ, unitary), Unitary.SVDDense(d, identity, unitary))s, p(d)) for i in 1:n]
+		[TransformNode(Chain(Unitary.Transform(d, σ, unitary), Unitary.Transform(d, identity, unitary))s, p(d)) for i in 1:n]
 	else
 		ns, σs, noise = ns[2:end], σs[2:end], noise[2:end]
-		[DenseNode(Chain(Unitary.SVDDense(d, σ, unitary), Unitary.SVDDense(d, identity, unitary))s, 
+		[TransformNode(Chain(Unitary.Transform(d, σ, unitary), Unitary.Transform(d, identity, unitary))s, 
 			addnoise(noisedim, p, nosharedmixture(d - noisedim, ns, σs, noise, p, unitary)))
 			for i in 1:n]
 	end
@@ -33,60 +33,60 @@ function allsharedmixture(d::Int, ns::Vector{Int}, σs::Vector, noise::Vector, p
 	noisedim > 0 && @warn "We ignore the noise in last layer (they are independent anyway)"
 	noise[end] = 0
 	truedim = d - sum(noise)
-	m = SumNode([DenseNode(Chain(Unitary.SVDDense(truedim, σ, unitary), Unitary.SVDDense(truedim, identity, unitary)), p(truedim)) for i in 1:n])
+	m = SumNode([TransformNode(Chain(Unitary.Transform(truedim, σ, unitary), Unitary.Transform(truedim, identity, unitary)), p(truedim)) for i in 1:n])
 	for i in length(ns)-1:-1:1
 		n, σ, noisedim = ns[i], σs[i], noise[i]
 		truedim = d - sum(noise[1:i-1])
-		m = SumNode([DenseNode(Chain(Unitary.SVDDense(truedim, σ, unitary), Unitary.SVDDense(truedim, identity, unitary)), addnoise(noisedim, p, m)) for i in 1:n])
+		m = SumNode([TransformNode(Chain(Unitary.Transform(truedim, σ, unitary), Unitary.Transform(truedim, identity, unitary)), addnoise(noisedim, p, m)) for i in 1:n])
 	end
 	m
 end
 """
-	densesharedmixture(d::Int, n::Int, l::Int, σ = identity, p = d -> MvNormal(d,1f0))
+	transformsharedmixture(d::Int, n::Int, l::Int, σ = identity, p = d -> MvNormal(d,1f0))
 
-	the models share the dense non-linear layers, but they do not share components weights (priors)
+	the models share the transform non-linear layers, but they do not share components weights (priors)
 """
-function densesharedmixture(d::Int, ns::Vector{Int}, σs::Vector, noise::Vector, p = d -> MvNormal(d,1f0), unitary = :householder)
+function transformsharedmixture(d::Int, ns::Vector{Int}, σs::Vector, noise::Vector, p = d -> MvNormal(d,1f0), unitary = :householder)
 	@assert length(ns) == length(σs) == length(noise)
 	n, σ, noisedim = ns[end], σs[end], noise[end]
 	noisedim > 0 && @warn "We ignore the noise in last layer (they are independent anyway)"
 	noise[end] = 0
 	truedim = d - sum(noise)
-	non_linear_part = [DenseNode(Chain(Unitary.SVDDense(truedim, σ, unitary), Unitary.SVDDense(truedim, identity, unitary)), p(truedim)) for i in 1:n];
+	non_linear_part = [TransformNode(Chain(Unitary.Transform(truedim, σ, unitary), Unitary.Transform(truedim, identity, unitary)), p(truedim)) for i in 1:n];
 	for i in length(ns)-1:-1:1
 		n, σ, noisedim = ns[i], σs[i], noise[i]
 		truedim = d - sum(noise[1:i-1])
-		non_linear_part = [DenseNode(Chain(Unitary.SVDDense(truedim, σ, unitary), Unitary.SVDDense(truedim, identity, unitary)), addnoise(noisedim, p, SumNode(non_linear_part))) for i in 1:n];
+		non_linear_part = [TransformNode(Chain(Unitary.Transform(truedim, σ, unitary), Unitary.Transform(truedim, identity, unitary)), addnoise(noisedim, p, SumNode(non_linear_part))) for i in 1:n];
 	end
 	m = SumNode(non_linear_part)
 	m
 end
 
-function buildmixture(d::Int, n::Int, l::Int, σ = identity, p = d -> MvNormal(d,1f0); sharing = :all, firstdense = false, unitary = :householder)
+function buildmixture(d::Int, n::Int, l::Int, σ = identity, p = d -> MvNormal(d,1f0); sharing = :all, firsttransform = false, unitary = :householder)
 	ns = fill(n, l)
 	σs = fill(σ, l)
 	noise = fill(0, l)
 	model = if sharing == :all 
 		allsharedmixture(d, ns, σs, noise, p, unitary)
-	elseif sharing == :dense
-		densesharedmixture(d, ns, σs, noise, p, unitary)
+	elseif sharing == :transform
+		transformsharedmixture(d, ns, σs, noise, p, unitary)
 	elseif sharing == :none 
 		nosharedmixture(d, ns, σs, noise, p, unitary)
 	else 
 		@error "unknown sharing $(sharing)"
 	end
-    model = firstdense ? DenseNode(Chain(Unitary.SVDDense(d, σ, unitary), Unitary.SVDDense(d, identity, unitary))s, model) : model
+    model = firsttransform ? TransformNode(Chain(Unitary.Transform(d, σ, unitary), Unitary.Transform(d, identity, unitary))s, model) : model
 end
 
-function buildmixture(d::Int, n::Vector, l::Vector, noise::Vector = fill(0, length(n)),  p = d -> MvNormal(d,1f0); sharing = :all, firstdense = false, unitary = :householder)
+function buildmixture(d::Int, n::Vector, l::Vector, noise::Vector = fill(0, length(n)),  p = d -> MvNormal(d,1f0); sharing = :all, firsttransform = false, unitary = :householder)
 	model = if sharing == :all 
 		allsharedmixture(d, n, l, noise, p, unitary)
-	elseif sharing == :dense
-		densesharedmixture(d, n, l, noise, p, unitary)
+	elseif sharing == :transform
+		transformsharedmixture(d, n, l, noise, p, unitary)
 	elseif sharing == :none 
 		nosharedmixture(d, n, l, noise, p, unitary)
 	else 
 		@error "unknown sharing $(sharing)"
 	end
-	model = firstdense ? DenseNode(Chain(Unitary.SVDDense(d, σ, unitary), Unitary.SVDDense(d, identity, unitary))s, model) : model
+	model = firsttransform ? TransformNode(Chain(Unitary.Transform(d, σ, unitary), Unitary.Transform(d, identity, unitary))s, model) : model
 end

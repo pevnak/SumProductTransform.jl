@@ -2,14 +2,14 @@ using IterTools, BSON, ValueHistories, MLDataPattern
 using TimerOutputs
 const to = TimerOutput()
 """
-	fit!(model, X, batchsize::Int, maxsteps::Int, maxpath::Int; check = 1000, minimum_improvement = typemin(Float64), opt = ADAM(), debugfile = "", xval = X)
+	fit!(model, X, batchsize::Int, maxsteps::Int, maxtree::Int; check = 1000, minimum_improvement = typemin(Float64), opt = ADAM(), debugfile = "", xval = X)
 
 	fits the model using stochastic gradient descend with on data `X` using stochastic
 	gradient descend with `batchsize` executed for `maxsteps` with improvement checked every `check` steps
 """
-function StatsBase.fit!(model, X, batchsize::Int, maxsteps::Int, maxpath::Int; check = 1000, minimum_improvement = typemin(Float64), opt = ADAM(), debugfile = "", xval = X, gradmethod = :auto)
+function StatsBase.fit!(model, X, batchsize::Int, maxsteps::Int, maxtree::Int; check = 1000, minimum_improvement = typemin(Float64), opt = ADAM(), debugfile = "", xval = X, gradmethod = :auto)
 	ps = Flux.params(model)
-	gradfun = getgradfun(gradmethod, model, X, batchsize, maxpath, ps)
+	gradfun = getgradfun(gradmethod, model, X, batchsize, maxtree, ps)
 	oldlkl = -mean(logpdf(model, xval))
 	i = 0;
 	train_time = 0.0
@@ -45,37 +45,37 @@ function StatsBase.fit!(model, X, batchsize::Int, maxsteps::Int, maxpath::Int; c
 	history
 end
 
-function samplepdf!(bestpath, model, x, repetitions::Int, pickbest = true)
-	paths = [samplepath(model) for i in 1:repetitions]
+function samplepdf!(besttree, model, x, repetitions::Int, pickbest = true)
+	trees = [sampletree(model) for i in 1:repetitions]
 	logpdfs = similar(x, size(x,2), repetitions)
-	@timeit to "pathlogpdf" Threads.@threads for i in 1:repetitions
-		logpdfs[:,i] .= pathlogpdf(model, x, paths[i])
+	@timeit to "treelogpdf" Threads.@threads for i in 1:repetitions
+		logpdfs[:,i] .= treelogpdf(model, x, trees[i])
 	end
 
 	if pickbest 		
 		y = mapslices(argmax, logpdfs, dims = 2)
 		o = [logpdfs[i, y[i]] for i in 1:size(x,2)]
-		path = [paths[y[i]] for i in 1:size(x,2)]
-		@timeit to "batchpathlogpdf" bestpdf = batchpathlogpdf(model, x, bestpath)
-		updatebestpath!(bestpdf, bestpath, o, path)
-		return(bestpath)
+		tree = [trees[y[i]] for i in 1:size(x,2)]
+		@timeit to "batchtreelogpdf" bestpdf = batchtreelogpdf(model, x, besttree)
+		updatebesttree!(bestpdf, besttree, o, tree)
+		return(besttree)
 	else 
-		return([paths[sample(1:repetitions, Weights(softmax(logpdfs[i,:])))] for i in 1:size(x,2)])
+		return([trees[sample(1:repetitions, Weights(softmax(logpdfs[i,:])))] for i in 1:size(x,2)])
 	end
 end
 
-function updatebestpath!(bestpdf, bestpath, o, path)
+function updatebesttree!(bestpdf, besttree, o, tree)
 	mask = o .> bestpdf
-	bestpath[mask] = path[mask]
+	besttree[mask] = tree[mask]
 end
 
-function samplinggrad(model, X, bestpath, batchsize, maxpath, ps, pickbest = true)
+function samplinggrad(model, X, besttree, batchsize, maxtree, ps, pickbest = true)
 	@timeit to "samplinggrad" begin
 		idxs = sample(1:size(X,2), batchsize, replace = false)
 		x = X[:, idxs]
-		@timeit to "samplepdf" path = SumDenseProduct.samplepdf!(view(bestpath,idxs), model, x, maxpath, pickbest)
-		bp = bestpath[idxs]
-		@timeit to "gradient" threadedgrad(i -> -sum(batchpathlogpdf(model, x[:,i], bp[i])), ps, size(x,2))
+		@timeit to "samplepdf" tree = SumDenseProduct.samplepdf!(view(besttree,idxs), model, x, maxtree, pickbest)
+		bp = besttree[idxs]
+		@timeit to "gradient" threadedgrad(i -> -sum(batchtreelogpdf(model, x[:,i], bp[i])), ps, size(x,2))
 	end
 end
 	
@@ -88,22 +88,22 @@ function exactgrad(model, X, batchsize, ps)
 	end
 end
 
-function exactpathgrad(model, X, batchsize, ps)
-	@timeit to "exactpathgrad" begin
+function exacttreegrad(model, X, batchsize, ps)
+	@timeit to "exacttreegrad" begin
 		idxs = sample(1:size(X,2), batchsize, replace = false)
 		x = X[:, idxs]
-		@timeit to "mappath" lkl, path = mappath(model, x)
-		@timeit to "gradient" threadedgrad(i -> -sum(batchpathlogpdf(model, x[:,i], path[i])), ps, size(x,2))
+		@timeit to "maptree" lkl, tree = maptree(model, x)
+		@timeit to "gradient" threadedgrad(i -> -sum(batchtreelogpdf(model, x[:,i], tree[i])), ps, size(x,2))
 	end
 end
 
-function tunegrad(model, X, batchsize, maxpath, ps, gradmethod = [:exact, :sampling, :exactpathgrad])
-	bestpath = [samplepath(model) for i in 1:size(X,2)]
+function tunegrad(model, X, batchsize, maxtree, ps, gradmethod = [:exact, :sampling, :exacttreegrad])
+	besttree = [sampletree(model) for i in 1:size(X,2)]
 	τ₁, τ₂, τ₃ = typemax(Float64), typemax(Float64), typemax(Float64)
 	if :sampling ∈ gradmethod
-		τ₁ = @elapsed samplinggrad(model, X, bestpath, batchsize, maxpath, ps)
+		τ₁ = @elapsed samplinggrad(model, X, besttree, batchsize, maxtree, ps)
 		println("compilation of samplinggrad: ", τ₁)
-		τ₁ = @elapsed samplinggrad(model, X, bestpath, batchsize, maxpath, ps)
+		τ₁ = @elapsed samplinggrad(model, X, besttree, batchsize, maxtree, ps)
 		println("execution of samplinggrad: ", τ₁)
 	end
 	if :exact ∈ gradmethod
@@ -112,41 +112,41 @@ function tunegrad(model, X, batchsize, maxpath, ps, gradmethod = [:exact, :sampl
 		τ₂ =  @elapsed exactgrad(model, X, batchsize, ps)
 		println("execution of exactgrad: ", τ₂)
 	end
-	if :exactpath ∈ gradmethod
-		τ₃ = @elapsed exactpathgrad(model, X, batchsize, ps)
-		println("compilation of exactpathgrad: ", τ₃)
-		τ₃ = @elapsed exactpathgrad(model, X, batchsize, ps)
-		println("execution of exactpathgrad: ", τ₃)
+	if :exacttree ∈ gradmethod
+		τ₃ = @elapsed exacttreegrad(model, X, batchsize, ps)
+		println("compilation of exacttreegrad: ", τ₃)
+		τ₃ = @elapsed exacttreegrad(model, X, batchsize, ps)
+		println("execution of exacttreegrad: ", τ₃)
 	end
 	i = argmin([τ₁, τ₂, τ₃])
 	if i == 1
 		println("using samplinggrad for calculation of the gradient")
-		return(() -> samplinggrad(model, X, bestpath, batchsize, maxpath, ps))
+		return(() -> samplinggrad(model, X, besttree, batchsize, maxtree, ps))
 	elseif i==2
 		println("using exactgrad for calculation of the gradient")
 		return(() -> exactgrad(model, X, batchsize, ps))
 	else
-		println("using exactpathgrad for calculation of the gradient")
-		return(() -> exactpathgrad(model, X, batchsize, ps))
+		println("using exacttreegrad for calculation of the gradient")
+		return(() -> exacttreegrad(model, X, batchsize, ps))
 
 	end
 end
 
-getgradfun(gradmethod::Vector{Symbol}, model, X, batchsize, maxpath, ps) = tunegrad(model, X, batchsize, maxpath, ps, gradmethod)
-function getgradfun(gradmethod::Symbol, model, X, batchsize, maxpath, ps)
+getgradfun(gradmethod::Vector{Symbol}, model, X, batchsize, maxtree, ps) = tunegrad(model, X, batchsize, maxtree, ps, gradmethod)
+function getgradfun(gradmethod::Symbol, model, X, batchsize, maxtree, ps)
 	batchsize = min(size(X,2), batchsize)
 	if gradmethod == :auto
-		return(tunegrad(model, X, batchsize, maxpath, ps))
+		return(tunegrad(model, X, batchsize, maxtree, ps))
 	elseif gradmethod == :exact
 		return(() -> exactgrad(model, X, batchsize, ps))
 	elseif gradmethod == :sampling
-		bestpath = [samplepath(model) for i in 1:size(X,2)]
-		return(() -> samplinggrad(model, X, bestpath, batchsize, maxpath, ps, false))
+		besttree = [sampletree(model) for i in 1:size(X,2)]
+		return(() -> samplinggrad(model, X, besttree, batchsize, maxtree, ps, false))
 	elseif gradmethod == :bestsampling
-		bestpath = [samplepath(model) for i in 1:size(X,2)]
-		return(() -> samplinggrad(model, X, bestpath, batchsize, maxpath, ps, true))
-	elseif gradmethod == :exactpath
-		return(() -> exactpathgrad(model, X, batchsize, ps))
+		besttree = [sampletree(model) for i in 1:size(X,2)]
+		return(() -> samplinggrad(model, X, besttree, batchsize, maxtree, ps, true))
+	elseif gradmethod == :exacttree
+		return(() -> exacttreegrad(model, X, batchsize, ps))
 	else 
 		@error "unknown gradmethod $(gradmethod)"
 	end

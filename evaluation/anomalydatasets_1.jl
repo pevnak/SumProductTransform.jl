@@ -22,21 +22,21 @@ settings = parse_args(ARGS, s; as_symbols=true)
 
   function randpars()
     modelparams = (batchsize = 100,
-      maxpath = rand([50,100,200]),
-      firstdense = rand([true,false]),
+      maxtree = rand([50,100,200]),
+      firsttransform = rand([true,false]),
       steps = rand([5000, 10000, 20000]),
       minimum_improvement =  1e-2,
       n = rand([2, 4, 8, 16]),
       l = rand([1, 2, 3, 4]),
       σ = rand([identity]),
-      sharing = rand([:dense, :all, :none]),
+      sharing = rand([:transform, :all, :none]),
       gradmethod = rand([:sampling, :bestsampling, :exactpath]))
   end
 
   function fit(X, p)
     d = size(X, 1)
-    model = buildmixture(d, p.n, p.l, p.σ; sharing = p.sharing, firstdense = p.firstdense)
-    history = fit!(model, X, p.batchsize, p.steps, p.maxpath; gradmethod = p.gradmethod, minimum_improvement = p.minimum_improvement, opt = ADAM())
+    model = buildmixture(d, p.n, p.l, p.σ; sharing = p.sharing, firsttransform = p.firsttransform)
+    history = fit!(model, X, p.batchsize, p.steps, p.maxtree; gradmethod = p.gradmethod, minimum_improvement = p.minimum_improvement, opt = ADAM())
     (model, p)
   end
 
@@ -44,9 +44,9 @@ settings = parse_args(ARGS, s; as_symbols=true)
   function runexp(dataset, repetition, polution)
     modelparams = randpars()
     ofname = "ex1_"*savename(modelparams)*replace("_$(modelparams.σ)","NNlib." => "")
-    isfile(joinpath(odir,dataset,"sumdense",ofname*"_model.bson")) && return(nothing)
-    !isdir(joinpath(odir,dataset,"sumdense")) && mkpath(joinpath(odir,dataset,"sumdense"))
-    anomalyexperiment(x -> fit(x, modelparams), dataset , joinpath(odir,dataset,"sumdense",ofname), aparam = (type = "easy", polution = polution, variation = "low"), repetition = repetition)
+    isfile(joinpath(odir,dataset,"sumtransform",ofname*"_model.bson")) && return(nothing)
+    !isdir(joinpath(odir,dataset,"sumtransform")) && mkpath(joinpath(odir,dataset,"sumtransform"))
+    anomalyexperiment(x -> fit(x, modelparams), dataset , joinpath(odir,dataset,"sumtransform",ofname), aparam = (type = "easy", polution = polution, variation = "low"), repetition = repetition)
     return(nothing)
   end
 end

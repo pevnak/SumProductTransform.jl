@@ -15,7 +15,7 @@ using SumDenseProduct, Test, Flux, Distributions
 		@test length(priors(m)) == 5
 	end
 
-	for m in [densesharedmixture(2, 4, 2), buildmixture(2, 4, 2;sharing = :dense)]
+	for m in [transformsharedmixture(2, 4, 2), buildmixture(2, 4, 2;sharing = :transform)]
 		@test length(Flux.params(m)) == 32
 		@test length(priors(m)) == 5
 	end
@@ -27,7 +27,7 @@ end
 	for k in 1:3
 		d = 3*k
 		for noise in [[k,k],[k,0]]
-			for m in [nosharedmixture(d, n, σs , noise), allsharedmixture(d, n, σs , noise), densesharedmixture(d, n, σs , noise)]
+			for m in [nosharedmixture(d, n, σs , noise), allsharedmixture(d, n, σs , noise), transformsharedmixture(d, n, σs , noise)]
 				@test length(m) == d
 				@test length(m.components[1].p) == d
 				@test length(m.components[1].p[1]) == k
@@ -38,12 +38,12 @@ end
 	end
 end
 
-@testset "number of path in a model" begin
+@testset "number of tree in a model" begin
 	noise = [0.5, 0.25, 0]
 	d = 10
 	for nc in [[2,2,2], [1,2,3], [3, 2, 1],]
 		model = buildmixture(d, nc,[identity, identity, identity], round.(Int,noise.*d); sharing = :all)
-		@test pathcount(model) == prod(nc)
+		@test treecount(model) == prod(nc)
 	end
 end
 
@@ -67,7 +67,7 @@ end
 			@test m.components[1].p.components[1].p.components[1].m.σ == σs[3]
 		end
 
-		for m in [densesharedmixture(2, ks, σs), buildmixture(2, ks, σs; sharing = :dense)]
+		for m in [transformsharedmixture(2, ks, σs), buildmixture(2, ks, σs; sharing = :transform)]
 			@test length(m.components) == ks[1]
 			@test m.components[1].m.σ == σs[1]
 			@test length(m.components[1].p.components) == ks[2]
@@ -79,20 +79,20 @@ end
 end
 
 @testset "testing that a correct type of unitary matrix is constructed" begin
-	for s in [:none, :all, :dense]
-		model = buildmixture(2, 2, 2, identity; sharing = s, firstdense = false, unitary = :butterfly)
-		@test typeof(model[1].c.m.u) <: Unitary.InPlaceUnitaryButterfly
-		@test typeof(model[1].c.p[1].c.m.u) <: Unitary.InPlaceUnitaryButterfly
+	for s in [:none, :all, :transform]
+		model = buildmixture(2, 2, 2, identity; sharing = s, firsttransform = false, unitary = :givens)
+		@test typeof(model[1].c.m.u) <: Unitary.InPlaceUnitaryUnitaryGivens
+		@test typeof(model[1].c.p[1].c.m.u) <: Unitary.InPlaceUnitaryUnitaryGivens
 
-		model = buildmixture(2, 2, 2, identity; sharing = s, firstdense = false, unitary = :householder)
+		model = buildmixture(2, 2, 2, identity; sharing = s, firsttransform = false, unitary = :householder)
 		@test typeof(model[1].c.m.u) <: Unitary.UnitaryHouseholder
 		@test typeof(model[1].c.p[1].c.m.u) <: Unitary.UnitaryHouseholder
 
-		model = buildmixture(2, 2, 2, identity; sharing = s, firstdense = true, unitary = :butterfly)
-		@test typeof(model.p[1].c.m.u) <: Unitary.InPlaceUnitaryButterfly
-		@test typeof(model.p[1].c.p[1].c.m.u) <: Unitary.InPlaceUnitaryButterfly
+		model = buildmixture(2, 2, 2, identity; sharing = s, firsttransform = true, unitary = :givens)
+		@test typeof(model.p[1].c.m.u) <: Unitary.InPlaceUnitaryUnitaryGivens
+		@test typeof(model.p[1].c.p[1].c.m.u) <: Unitary.InPlaceUnitaryUnitaryGivens
 
-		model = buildmixture(2, 2, 2, identity; sharing = s, firstdense = true, unitary = :householder)
+		model = buildmixture(2, 2, 2, identity; sharing = s, firsttransform = true, unitary = :householder)
 		@test typeof(model.p[1].c.m.u) <: Unitary.UnitaryHouseholder
 		@test typeof(model.p[1].c.p[1].c.m.u) <: Unitary.UnitaryHouseholder
 	end
