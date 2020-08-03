@@ -30,8 +30,8 @@ function plot_rand(m, n)
 end
 
 function buildm(n, decom = :svdgivens)
-	p₁₂ = SumNode([TransformNode(Chain(Unitary.Transform(2, selu, :svdgivens), Unitary.Transform(2, identity, :svdgivens)),  MvNormal(2,1f0)) for _ in 1:2])
-	SumNode([TransformNode(Unitary.Transform(2, identity, :svdgivens), p₁₂) for i in 1:n])
+	p₁₂ = SumNode([TransformNode(Chain(Unitary.Transform(2, selu, decom), Unitary.Transform(2, identity, decom)),  MvNormal(2,1f0)) for _ in 1:2])
+	SumNode([TransformNode(Unitary.Transform(2, identity, decom), p₁₂) for i in 1:n])
 end
 
 function buildm2(decom = :svdgivens)
