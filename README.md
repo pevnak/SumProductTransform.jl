@@ -1,4 +1,4 @@
-# SumDenseProduct.jl
+# SumProductTransform.jl
 
 An experimental implementation of a generalization of a Sum-Product networks by a Dense node.
 
