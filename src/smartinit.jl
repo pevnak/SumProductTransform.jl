@@ -14,6 +14,17 @@ function init_dense_only!(m::DenseNode, X)
 	_initpp!(m, xx)
 end
 
+function _initpp!(m::DenseNode{SVDDense{U, D, U, B, S},P}, X)  where {U<: Unitary.Butterfly,D, P, B, S}
+	m.m.b .= - mean(X, dims = 2)[:]
+	m.m.u.θs .= 0
+	m.m.v.θs .= 0
+	d = 1 ./ std(X, dims = 2)[:]
+	d[isnan.(d)] .= 1
+	d[isinf.(d)] .= 1
+	m.m.d.d .= d
+	m.m(X)
+end
+
 init_dense_only!(m, X) = X
 
 function _initpp!(m::DenseNode, X)
