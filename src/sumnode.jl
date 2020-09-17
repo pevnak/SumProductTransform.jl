@@ -26,7 +26,6 @@ Base.getindex(m::SumNode,i ::Int) = (c = m.components[i], p = m.prior[i])
 Base.length(m::SumNode) = length(m.components[1])
 
 Flux.@functor SumNode
-Flux.trainable(m::SumNode) = (m.components,)
 
 """
 	pathlogpdf(p::SumNode, x, path::Vector{Vector{Int}})
@@ -79,33 +78,16 @@ Zygote.@adjoint Flux.onecold(x) = Flux.onecold(x), Δ -> (nothing,)
 """
 function Distributions.logpdf(m::SumNode, x)
 	lkl = transpose(hcat(map(c -> logpdf(c, x) ,m.components)...))
-	if Flux.istraining()
-		y = Flux.onecold(softmax(dropgrad(lkl), dims = 1))
-		o = Flux.onehotbatch(y, 1:length(m.components))
-		return(mean( o .* lkl, dims = 1)[:])
-	else
-		return(logsumexp(log.(m.prior .+ 1f-8) .+ lkl, dims = 1)[:])
-	end
+	w = m.prior .- logsumexp(m.prior)
+	logsumexp(w .+ lkl, dims = 1)[:]
 end
 
-function zerolatent!(m::SumNode)
-	m.prior .= 0 
-	foreach(zerolatent!, m.components)
-	nothing
-end
-
-function normalizelatent!(m::SumNode)
-	m.prior ./= max(sum(m.prior), 1) 
-	foreach(normalizelatent!, m.components) 
-end
-
-function _updatelatent!(m::SumNode, path)
-	component = path[1]
-	m.prior[component] += 1
-	_updatelatent!(m.components[component], path[2])
-end
-
-_priors(m::SumNode) = m.prior
+# function updateprior!(ps::Priors, m::SumNode, path)
+# 	p = get(ps, m.prior, similar(m.prior) .= 0)
+# 	component = path[1]
+# 	p[component] += 1
+# 	updateprior!(ps, m.components[component], path[2])
+# end
 
 
 Base.show(io::IO, z::SumNode{T,C}) where {T,C} = dsprint(io, z)

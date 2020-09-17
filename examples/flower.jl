@@ -6,6 +6,7 @@ using Plots
 plotly()
 
 function visualize(m, x)
+	levels = quantile(exp.(logpdf(m, x)), 0.01:0.09:0.99)
 	xr = range(minimum(x[1,:]) - 1 , maximum(x[1,:])+ 1 , length = 100)
 	yr = range(minimum(x[2,:]) - 1 , maximum(x[2,:])+ 1 , length = 100)
 	contour(xr, yr, (x...) ->  logpdf(m, [x[1],x[2]])[1]);

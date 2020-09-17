@@ -8,7 +8,10 @@ const to = TimerOutput()
 	gradient descend with `batchsize` executed for `maxsteps` with improvement checked every `check` steps
 """
 function StatsBase.fit!(model, X, batchsize::Int, maxsteps::Int, maxpath::Int; check = 1000, minimum_improvement = typemin(Float64), opt = ADAM(), debugfile = "", xval = X, gradmethod = :auto)
-	ps = Flux.params(model)
+	fit!(model, X, batchsize::Int, maxsteps::Int; maxpath, check, minimum_improvement, opt, debugfile, xval, gradmethod)
+end
+
+function StatsBase.fit!(model, X, batchsize::Int, maxsteps::Int; maxpath = 100, check = 1000, minimum_improvement = typemin(Float64), opt = ADAM(), debugfile = "", xval = X, gradmethod = :auto, ps = Flux.params(model))
 	gradfun = getgradfun(gradmethod, model, X, batchsize, maxpath, ps)
 	oldlkl = -mean(logpdf(model, xval))
 	i = 0;
