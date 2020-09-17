@@ -1,10 +1,10 @@
 using SumDenseProduct, Distributions
 using SumDenseProduct: FullScope, Scope, samplepath, treelogpdf, SVDDense
 
-m = DenseNode(
+m = TransformationNode(
 	SVDDense(2, identity),
 	SumNode([LearnableProductNode(2,
-		DenseNode(	
+		TransformationNode(	
 				SVDDense(2, identity),
 				LearnableProductNode(2, 
 					Distributions.MvNormal(2,1f0))))

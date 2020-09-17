@@ -7,7 +7,7 @@ include("distributions.jl")
 
 x = flower(Float32,200);
 K = 19
-comps = tuple([DenseNode(Unitary.SVDDense(2, identity, :butterfly), MvNormal(2,1f0)) for _ in 1:K]...)
+comps = tuple([TransformationNode(Unitary.SVDDense(2, identity, :butterfly), MvNormal(2,1f0)) for _ in 1:K]...)
 α₀ = fill(0.001f0, K)
 α = deepcopy(α₀)
 ps = Flux.params(comps)

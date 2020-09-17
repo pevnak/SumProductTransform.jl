@@ -5,8 +5,8 @@ using SumDenseProduct: maptree, treelogpdf, batchtreelogpdf
 	d = 4
 	x = randn(d,10)
 	p = MvNormal(4,1)
-	m1 = DenseNode(Unitary.SVDDense(d, identity), p)
-	m2 = DenseNode(Unitary.SVDDense(d, identity), p)
+	m1 = TransformationNode(Unitary.SVDDense(d, identity), p)
+	m2 = TransformationNode(Unitary.SVDDense(d, identity), p)
 
 	@test maptree(m1, x)[1] ≈ logpdf(m1, x)
 	@test all(typeof.(maptree(m1, x)[2]) .==  typeof(tuple()))

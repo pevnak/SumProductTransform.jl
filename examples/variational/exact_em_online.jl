@@ -8,7 +8,7 @@ include("distributions.jl")
 Ndat = 200;
 x = flower(Float32,Ndat);
 K = 19
-comps = tuple([DenseNode(Unitary.SVDDense(2, identity, :butterfly), MvNormal(2,1f0)) for _ in 1:K]...)
+comps = tuple([TransformationNode(Unitary.SVDDense(2, identity, :butterfly), MvNormal(2,1f0)) for _ in 1:K]...)
 α₀ = fill(1f0, K)
 ρ = 1e-5*ones(K,Ndat)
 α = deepcopy(α₀)

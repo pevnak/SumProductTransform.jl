@@ -23,10 +23,10 @@ function nosharedmixture(d::Int, ns::Vector{Int}, σs::Vector, noise::Vector, p 
 	n, σ, noisedim = ns[1], σs[1], noise[1]
 	components = if length(ns) == 1
 		noisedim > 0 && @warn "We ignore the noise in last layer (they are independent anyway)"
-		[DenseNode(transform(d, σ, unitary), p(d)) for i in 1:n]
+		[TransformationNode(transform(d, σ, unitary), p(d)) for i in 1:n]
 	else
 		ns, σs, noise = ns[2:end], σs[2:end], noise[2:end]
-		[DenseNode(transform(d, σ, unitary), 
+		[TransformationNode(transform(d, σ, unitary), 
 			addnoise(noisedim, p, nosharedmixture(d - noisedim, ns, σs, noise, p, unitary)))
 			for i in 1:n]
 	end
@@ -44,11 +44,11 @@ function allsharedmixture(d::Int, ns::Vector{Int}, σs::Vector, noise::Vector, p
 	noisedim > 0 && @warn "We ignore the noise in last layer (they are independent anyway)"
 	noise[end] = 0
 	truedim = d - sum(noise)
-	m = SumNode([DenseNode(transform(truedim, σ, unitary), p(truedim)) for i in 1:n])
+	m = SumNode([TransformationNode(transform(truedim, σ, unitary), p(truedim)) for i in 1:n])
 	for i in length(ns)-1:-1:1
 		n, σ, noisedim = ns[i], σs[i], noise[i]
 		truedim = d - sum(noise[1:i-1])
-		m = SumNode([DenseNode(transform(truedim, σ, unitary), addnoise(noisedim, p, m)) for i in 1:n])
+		m = SumNode([TransformationNode(transform(truedim, σ, unitary), addnoise(noisedim, p, m)) for i in 1:n])
 	end
 	m
 end
@@ -63,11 +63,11 @@ function densesharedmixture(d::Int, ns::Vector{Int}, σs::Vector, noise::Vector,
 	noisedim > 0 && @warn "We ignore the noise in last layer (they are independent anyway)"
 	noise[end] = 0
 	truedim = d - sum(noise)
-	non_linear_part = [DenseNode(transform(truedim, σ, unitary), p(truedim)) for i in 1:n];
+	non_linear_part = [TransformationNode(transform(truedim, σ, unitary), p(truedim)) for i in 1:n];
 	for i in length(ns)-1:-1:1
 		n, σ, noisedim = ns[i], σs[i], noise[i]
 		truedim = d - sum(noise[1:i-1])
-		non_linear_part = [DenseNode(transform(truedim, σ, unitary), addnoise(noisedim, p, SumNode(non_linear_part))) for i in 1:n];
+		non_linear_part = [TransformationNode(transform(truedim, σ, unitary), addnoise(noisedim, p, SumNode(non_linear_part))) for i in 1:n];
 	end
 	m = SumNode(non_linear_part)
 	m
@@ -86,7 +86,7 @@ function buildmixture(d::Int, n::Int, l::Int, σ = identity, p = d -> MvNormal(d
 	else 
 		@error "unknown sharing $(sharing)"
 	end
-    model = firstdense ? DenseNode(transform(d, σ, unitary), model) : model
+    model = firstdense ? TransformationNode(transform(d, σ, unitary), model) : model
 end
 
 function buildmixture(d::Int, n::Vector, l::Vector, noise::Vector = fill(0, length(n)),  p = d -> MvNormal(d,1f0); sharing = :all, firstdense = false, unitary = :householder)
@@ -99,5 +99,5 @@ function buildmixture(d::Int, n::Vector, l::Vector, noise::Vector = fill(0, leng
 	else 
 		@error "unknown sharing $(sharing)"
 	end
-	model = firstdense ? DenseNode(transform(d, σ, unitary), model) : model
+	model = firstdense ? TransformationNode(transform(d, σ, unitary), model) : model
 end

@@ -108,7 +108,7 @@ include("fitting/em.jl")
 samplepath(m) = tuple()
 samplepath(m, s::AbstractScope) = (s,)
 
-export SumNode, DenseNode, ProductNode, LearnableProductNode
+export SumNode, TransformationNode, ProductNode, LearnableProductNode
 export densesharedmixture, nosharedmixture, allsharedmixture, priors, updatelatent!, buildmixture, pathcount, batchlogpdf
 export em!, fit!
 

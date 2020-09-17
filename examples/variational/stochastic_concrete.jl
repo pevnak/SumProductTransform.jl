@@ -12,7 +12,7 @@ end
 
 x = flower(Float32,200)
 K = 9
-components = tuple([DenseNode(Unitary.SVDDense(2, identity, :butterfly), MvNormal(2,1f0)) for _ in 1:K]...)
+components = tuple([TransformationNode(Unitary.SVDDense(2, identity, :butterfly), MvNormal(2,1f0)) for _ in 1:K]...)
 q = Chain(Dense(2,10,relu), Dense(10,10,relu), Dense(10,9))
 
 ps = Flux.params(components)
