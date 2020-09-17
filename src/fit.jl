@@ -44,7 +44,6 @@ function StatsBase.fit!(model, X, batchsize::Int, maxsteps::Int; maxpath = 100, 
 		end
 		oldlkl = newlkl
 	end
-	# updatelatent!(model, X, batchsize);
 	history
 end
 

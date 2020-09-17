@@ -1,8 +1,6 @@
 module SumDenseProduct
 using Distributions, NNlib, Flux, Unitary, Zygote, StatsBase, FillArrays
 
-include("scope.jl")
-
 const COLORS = [:blue, :red, :green, :yellow, :cyan, :magenta]
 
 function paddedprint(io, s...; color=:default, pad=[])
@@ -39,8 +37,7 @@ log_normal(x,μ, σ2::T) where {T<:Number} = - sum((@. ((x - μ)^2)/σ2), dims=1
 
 #Let's do a little bit of function stealing
 Distributions.logpdf(p::MvNormal, x::AbstractMatrix) = log_normal(x)[:]
-Distributions.logpdf(p::MvNormal, x::AbstractMatrix, S::NoScope) = log_normal(x)[:]
-
+_maptree(p::MvNormal, x::AbstractMatrix) = (log_normal(x)[:], fill(tuple(), size(x,2)))
 batchlogpdf(p, x, bs::Int) = reduce(vcat, map(i -> logpdf(p, x[:,i]), Iterators.partition(1:size(x,2), bs)))
 
 
@@ -58,10 +55,6 @@ pathcount(m) = 1
     For distributions outside the SumDenseProduct it falls back to logpdf(p, x).
 """
 treelogpdf(m, x, path) = logpdf(m, x)
-treelogpdf(m, x, path, s::AbstractScope) = logpdf(m, x)
-
-_maptree(m, x, s::AbstractScope = NoScope())= (logpdf(m,x), fill(tuple(), size(x, 2)))
-
 batchtreelogpdf(m, x, path) = map(i -> treelogpdf(m, x[:,i:i], path[i])[1], 1:length(path))
 
 
@@ -87,18 +80,16 @@ function priors(m)
 end
 
 include("priors.jl")
-include("scopedsvd.jl")
 include("threadedgrads.jl")
 include("sumnode.jl")
-include("densenode.jl")
+include("transformationnode.jl")
 include("productnode.jl")
-include("learnableproductnode.jl")
 include("modelbuilders.jl")
 include("fit.jl")
 include("smartinit.jl")
 include("fitting/em.jl")
 
-
+Distributions.logpdf(m::T, x::AbstractVector) where {T<:Union{SumNode, TransformationNode, ProductNode}} = logpdf(m, reshape(x, :, 1))[1]
 """
     path = samplepath(m)
 
@@ -106,9 +97,8 @@ include("fitting/em.jl")
     pdf along this path.
 """
 samplepath(m) = tuple()
-samplepath(m, s::AbstractScope) = (s,)
 
-export SumNode, TransformationNode, ProductNode, LearnableProductNode
+export SumNode, TransformationNode, ProductNode
 export densesharedmixture, nosharedmixture, allsharedmixture, priors, updatelatent!, buildmixture, pathcount, batchlogpdf
 export em!, fit!
 

@@ -49,18 +49,22 @@ function sampletree(m::SumNode, s...)
 	(i, sampletree(m.components[i], s...))
 end
 
-function _maptree(m::SumNode, x::AbstractArray{T}, s::AbstractScope) where {T}
+function _maptree(m::SumNode, x::AbstractArray{T}) where {T}
 	n = length(m.components)
-	lkl, tree = Vector{Vector{T}}(undef, n), Vector{Any}(undef, n)
-	for i in 1:n
-		lkl[i], tree[i] = _maptree(m.components[i], x, s)
+	lkl, tree = _maptree(m.components[1], x)
+	tree = map(t -> (1, t), tree)
+	for i in 2:n
+		_lkl, _tree = _maptree(m.components[i], x)
+		(lkl, tree) = keepbetter((lkl, tree), (_lkl, _tree), i)
 	end
-	lkl = transpose(hcat(lkl...))
-	y = Flux.onecold(softmax(lkl, dims = 1))
-	o = Flux.onehotbatch(y, 1:n)
-	o =  sum(o .* lkl, dims = 1)[:]
-	tree = [(y[i], tree[y[i]][i]) for i in 1:size(x,2)]
-	return(o, tree)
+	return(lkl, tree)
+end
+
+function keepbetter(a, b, i)
+	better =  (a[1] .> b[1])
+	lkl = [better[j] ? a[1][j] : b[1][j] for j in 1:length(better)]
+	tree = [better[j] ? a[2][j] : (i, b[2][j]) for j in 1:length(better)]
+	(lkl, tree)
 end
 
 treecount(m::SumNode) = mapreduce(treecount, +, m.components)
@@ -74,8 +78,8 @@ Base.rand(m::SumNode) = rand(m.components[sample(Weights(m.prior))])
 	During training, the prior of the sample is one for the most likely component and zero for the others.
 """
 
-function Distributions.logpdf(m::SumNode, x, s::AbstractScope = NoScope())
-	lkl = transpose(hcat(map(c -> logpdf(c, x, s) ,m.components)...))
+function Distributions.logpdf(m::SumNode, x::AbstractMatrix)
+	lkl = transpose(hcat(map(c -> logpdf(c, x) ,m.components)...))
 	w = m.prior .- logsumexp(m.prior)
 	logsumexp(w .+ lkl, dims = 1)[:]
 end

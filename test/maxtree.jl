@@ -20,11 +20,11 @@ using SumDenseProduct: maptree, treelogpdf, batchtreelogpdf
 
 	m = ProductNode((m1, m2))
 	x = randn(length(m), 10)
-	maptree(m, x)[1] ≈ logpdf(m, x)
+	@test maptree(m, x)[1] ≈ logpdf(m, x)
 
 	d = 8
 	x = rand(d,10)
 	m = buildmixture(d, [4,4], [identity, identity], [4,0])
 	lkl, path = maptree(m, x)
-	lkl ≈ batchtreelogpdf(m, x, path)
+	@test lkl ≈ batchtreelogpdf(m, x, path)
 end

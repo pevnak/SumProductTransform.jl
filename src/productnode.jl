@@ -34,19 +34,19 @@ function ProductNode(ps::Tuple)
 	ProductNode(ps, tuple(dimensions...))
 end
 
-function Distributions.logpdf(m::ProductNode, x, s::AbstractScope = NoScope())
+function Distributions.logpdf(m::ProductNode, x)
 	m
-	o = logpdf(m.components[1], x[m.dimensions[1],:], s[m.dimensions[1]])
+	o = logpdf(m.components[1], x[m.dimensions[1],:])
 	for i in 2:length(m.components)
-		o += logpdf(m.components[i], x[m.dimensions[i],:], s[m.dimensions[1]])
+		o += logpdf(m.components[i], x[m.dimensions[i],:])
 	end
 	o
 end
 
-function treelogpdf(p::ProductNode, x, path, s::AbstractScope = NoScope())
-	o = treelogpdf(p.components[1], x[p.dimensions[1],:], path[1], s[m.dimensions[1]])
+function treelogpdf(p::ProductNode, x, path)
+	o = treelogpdf(p.components[1], x[p.dimensions[1],:], path[1])
 	for i in 2:length(p.components)
-		o += treelogpdf(p.components[i], x[p.dimensions[i],:], path[i], s[m.dimensions[1]])
+		o += treelogpdf(p.components[i], x[p.dimensions[i],:], path[i])
 	end
 	o
 end
@@ -61,11 +61,11 @@ function updateprior!(ps::Priors, m::ProductNode, path)
 end
 
 
-function _maptree(m::ProductNode, x, s::AbstractScope = NoScope())
-	o, path = _maptree(m.components[1], x[m.dimensions[1],:], s[m.dimensions[1]])
+function _maptree(m::ProductNode, x)
+	o, path = _maptree(m.components[1], x[m.dimensions[1],:],)
 	path = map(s -> (s,), path)
 	for i in 2:length(m.components)
-		oo, pp = _maptree(m.components[i], x[m.dimensions[i],:], s[m.dimensions[i]])
+		oo, pp = _maptree(m.components[i], x[m.dimensions[i],:])
 		o .+= oo
 		path = map(s -> tuple(s[1]..., s[2]), zip(path, pp))
 	end
