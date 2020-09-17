@@ -37,7 +37,10 @@ log_normal(x,μ, σ2::T) where {T<:Number} = - sum((@. ((x - μ)^2)/σ2), dims=1
 
 #Let's do a little bit of function stealing
 Distributions.logpdf(p::MvNormal, x::AbstractMatrix) = log_normal(x)[:]
-_maptree(p::MvNormal, x::AbstractMatrix) = (log_normal(x)[:], fill(tuple(), size(x,2)))
+function Distributions.logpdf(m::M, x::AbstractMatrix) where {M<: MvNormal{T,Distributions.PDMats.ScalMat{T},FillArrays.Zeros{T,1,Tuple{Base.OneTo{Int64}}}}} where {T}
+  log_normal(x, m.μ)[:]
+end
+_maptree(p::MvNormal, x::AbstractMatrix) = (logpdf(p, x)[:], fill(tuple(), size(x,2)))
 batchlogpdf(p, x, bs::Int) = reduce(vcat, map(i -> logpdf(p, x[:,i]), Iterators.partition(1:size(x,2), bs)))
 
 
@@ -56,11 +59,6 @@ pathcount(m) = 1
 """
 treelogpdf(m, x, path) = logpdf(m, x)
 batchtreelogpdf(m, x, path) = map(i -> treelogpdf(m, x[:,i:i], path[i])[1], 1:length(path))
-
-
-function Distributions.logpdf(m::M, x::AbstractMatrix) where {M<: MvNormal{T,Distributions.PDMats.ScalMat{T},FillArrays.Zeros{T,1,Tuple{Base.OneTo{Int64}}}}} where {T}
-  log_normal(x, m.μ)[:]
-end
 
 _priors(m) = nothing
 function priors!(ps, x, seen = Flux.IdSet())
