@@ -1,4 +1,4 @@
-using Zygote: dropgrad
+using StatsBase
 
 struct SumNode{T,C}
 	components::Vector{C}
@@ -9,6 +9,8 @@ struct SumNode{T,C}
 		new{T,C}(components, prior)
 	end
 end
+
+_priors(m::SumNode) = m.prior
 
 """
 	SumNode(components::Vector, prior::Vector)
@@ -28,47 +30,42 @@ Base.length(m::SumNode) = length(m.components[1])
 Flux.@functor SumNode
 
 """
-	pathlogpdf(p::SumNode, x, path::Vector{Vector{Int}})
+	treelogpdf(p::SumNode, x, tree::Vector{Vector{Int}})
 
-	logpdf of samples `x` calculated along the `path`, which determine only 
+	logpdf of samples `x` calculated along the `tree`, which determine only 
 	subset of models
 """
-function pathlogpdf(p::SumNode, x, path) 
-	pathlogpdf(p.components[path[1]], x, path[2])
+function treelogpdf(p::SumNode, x, tree) 
+	treelogpdf(p.components[tree[1]], x, tree[2])
 end
 
 """
-	samplepath(m)
+	sampletree(m)
 
-	samples path determining subset of the model
+	samples tree determining subset of the model
 """
-function samplepath(m::SumNode) 
-	i = rand(1:length(m.components))
-	(i, samplepath(m.components[i]))
+function sampletree(m::SumNode, s...) 
+	i = sample(Weights(softmax(m.prior)))
+	(i, sampletree(m.components[i], s...))
 end
 
-function _mappath(m::SumNode, x::AbstractArray{T}) where {T}
+function _maptree(m::SumNode, x::AbstractArray{T}, s::AbstractScope) where {T}
 	n = length(m.components)
-	lkl, path = Vector{Vector{T}}(undef, n), Vector{Any}(undef, n)
-	Threads.@threads for i in 1:n
-		lkl[i], path[i] = _mappath(m.components[i], x)
+	lkl, tree = Vector{Vector{T}}(undef, n), Vector{Any}(undef, n)
+	for i in 1:n
+		lkl[i], tree[i] = _maptree(m.components[i], x, s)
 	end
 	lkl = transpose(hcat(lkl...))
 	y = Flux.onecold(softmax(lkl, dims = 1))
 	o = Flux.onehotbatch(y, 1:n)
 	o =  sum(o .* lkl, dims = 1)[:]
-	path = [(y[i], path[y[i]][i]) for i in 1:size(x,2)]
-	return(o, path)
+	tree = [(y[i], tree[y[i]][i]) for i in 1:size(x,2)]
+	return(o, tree)
 end
 
-pathcount(m::SumNode) = mapreduce(pathcount, +, m.components)
+treecount(m::SumNode) = mapreduce(treecount, +, m.components)
 
 Base.rand(m::SumNode) = rand(m.components[sample(Weights(m.prior))])
-
-
-Zygote.@adjoint Flux.onehotbatch(y, n) = Flux.onehotbatch(y,n), Δ -> (nothing, nothing)
-Zygote.@adjoint Flux.onecold(x) = Flux.onecold(x), Δ -> (nothing,)
-
 
 """
 	logpdf(m::MixtureModel, x)
@@ -76,31 +73,33 @@ Zygote.@adjoint Flux.onecold(x) = Flux.onecold(x), Δ -> (nothing,)
 	log-likelihood on samples `x`. During evaluation, weights of mixtures are taken into the account.
 	During training, the prior of the sample is one for the most likely component and zero for the others.
 """
-function Distributions.logpdf(m::SumNode, x)
-	lkl = transpose(hcat(map(c -> logpdf(c, x) ,m.components)...))
+
+function Distributions.logpdf(m::SumNode, x, s::AbstractScope = NoScope())
+	lkl = transpose(hcat(map(c -> logpdf(c, x, s) ,m.components)...))
 	w = m.prior .- logsumexp(m.prior)
 	logsumexp(w .+ lkl, dims = 1)[:]
 end
 
-# function updateprior!(ps::Priors, m::SumNode, path)
-# 	p = get(ps, m.prior, similar(m.prior) .= 0)
-# 	component = path[1]
-# 	p[component] += 1
-# 	updateprior!(ps, m.components[component], path[2])
-# end
-
+function updateprior!(ps::Priors, m::SumNode, tree)
+	p = get(ps, m.prior, similar(m.prior) .= 0)
+	component = tree[1]
+	p[component] += 1
+	updateprior!(ps, m.components[component], tree[2])
+end
 
 Base.show(io::IO, z::SumNode{T,C}) where {T,C} = dsprint(io, z)
 function dsprint(io::IO, n::SumNode; pad=[])
+	w = softmax(n.prior) .+ 0.001f0
+	w = w ./ sum(w)
     c = COLORS[(length(pad)%length(COLORS))+1]
     paddedprint(io, "Mixture\n", color=c)
 
     m = length(n.components)
     for i in 1:(m-1)
-        paddedprint(io, "  ├── $(n.prior[i])", color=c, pad=pad)
+        paddedprint(io, "  ├── $(w[i])", color=c, pad=pad)
         dsprint(io, n.components[i], pad=[pad; (c, "  │   ")])
     end
-    paddedprint(io, "  └── $(n.prior[end])", color=c, pad=pad)
+    paddedprint(io, "  └── $(w[end])", color=c, pad=pad)
     dsprint(io, n.components[end], pad=[pad; (c, "      ")])
 end
 

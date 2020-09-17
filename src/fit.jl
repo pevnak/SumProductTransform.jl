@@ -22,7 +22,6 @@ function StatsBase.fit!(model, X, batchsize::Int, maxsteps::Int; maxpath = 100, 
 		check = min(check, maxsteps - i)
 		train_time += @elapsed for j in 1:check
 			gs = gradfun()
-			gs == nothing && @warn "nothing in gradient"
 			Flux.Optimise.update!(opt, ps, gs)
 		end
 		i += check
@@ -52,15 +51,15 @@ end
 function samplepdf!(bestpath, model, x, repetitions::Int, pickbest::Bool = true)
 	paths = [samplepath(model) for i in 1:repetitions]
 	logpdfs = similar(x, size(x,2), repetitions)
-	@timeit to "pathlogpdf" Threads.@threads for i in 1:repetitions
-		logpdfs[:,i] .= pathlogpdf(model, x, paths[i])
+	@timeit to "treelogpdf" Threads.@threads for i in 1:repetitions
+		logpdfs[:,i] .= treelogpdf(model, x, paths[i])
 	end
 
 	if pickbest 		
 		y = mapslices(argmax, logpdfs, dims = 2)
 		o = [logpdfs[i, y[i]] for i in 1:size(x,2)]
 		path = [paths[y[i]] for i in 1:size(x,2)]
-		@timeit to "batchpathlogpdf" bestpdf = batchpathlogpdf(model, x, bestpath)
+		@timeit to "batchtreelogpdf" bestpdf = batchtreelogpdf(model, x, bestpath)
 		updatebestpath!(bestpdf, bestpath, o, path)
 		return(bestpath)
 	else 
@@ -71,8 +70,8 @@ end
 function samplepdf!(model, x, repetitions::Int, pickbest::Bool = true)
 	paths = [samplepath(model) for i in 1:repetitions]
 	logpdfs = similar(x, size(x,2), repetitions)
-	@timeit to "pathlogpdf" Threads.@threads for i in 1:repetitions
-		logpdfs[:,i] .= pathlogpdf(model, x, paths[i])
+	@timeit to "treelogpdf" Threads.@threads for i in 1:repetitions
+		logpdfs[:,i] .= treelogpdf(model, x, paths[i])
 	end
 
 	if pickbest 		
@@ -96,7 +95,7 @@ function samplinggrad(model, X, bestpath, batchsize, maxpath, ps, pickbest::Bool
 		x = X[:, idxs]
 		@timeit to "samplepdf" path = SumDenseProduct.samplepdf!(view(bestpath,idxs), model, x, maxpath, pickbest)
 		bp = bestpath[idxs]
-		@timeit to "gradient" threadedgrad(i -> -sum(batchpathlogpdf(model, x[:,i], bp[i])), ps, size(x,2))
+		@timeit to "gradient" threadedgrad(i -> -sum(batchtreelogpdf(model, x[:,i], bp[i])), ps, size(x,2))
 	end
 end
 	
@@ -105,7 +104,7 @@ function samplinggrad(model, X, batchsize, maxpath, ps, pickbest::Bool = true)
 		idxs = sample(1:size(X,2), batchsize, replace = false)
 		x = X[:, idxs]
 		@timeit to "samplepdf" path = SumDenseProduct.samplepdf!(model, x, maxpath, pickbest)
-		@timeit to "gradient" threadedgrad(i -> -sum(batchpathlogpdf(model, x[:,i], path[i])), ps, size(x,2))
+		@timeit to "gradient" threadedgrad(i -> -sum(batchtreelogpdf(model, x[:,i], path[i])), ps, size(x,2))
 	end
 end
 	
@@ -114,7 +113,12 @@ function exactgrad(model, X, batchsize, ps)
 		idxs = sample(1:size(X,2), batchsize, replace = false)
 		x = X[:, idxs]
 		# @timeit to "gradient" threadedgrad(i -> -sum(logpdf(model, x[:,i])), ps, size(x,2))
-		gradient(() -> -mean(logpdf(model, x)), ps)
+		gs = gradient(() -> -mean(logpdf(model, x)), ps)
+		# if any([any(isnan.(gs[p])) for p in ps])
+		# 	!isfile("/tmp/sumdense.jls") && serialize("/tmp/sumdense.jls",(model, x))
+		# 	@error "nan in gradient"
+		# end
+		gs
 	end
 end
 
@@ -122,8 +126,8 @@ function exactpathgrad(model, X, batchsize, ps)
 	@timeit to "exactpathgrad" begin
 		idxs = sample(1:size(X,2), batchsize, replace = false)
 		x = X[:, idxs]
-		@timeit to "mappath" lkl, path = mappath(model, x)
-		@timeit to "gradient" threadedgrad(i -> -sum(batchpathlogpdf(model, x[:,i], path[i])), ps, size(x,2))
+		@timeit to "maptree" lkl, path = maptree(model, x)
+		@timeit to "gradient" threadedgrad(i -> -sum(batchtreelogpdf(model, x[:,i], path[i])), ps, size(x,2))
 	end
 end
 

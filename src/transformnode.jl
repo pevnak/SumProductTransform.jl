@@ -1,4 +1,4 @@
-struct DenseNode{M,P} <: Distributions.ContinuousMultivariateDistribution
+struct DenseNode{M,P}
 	m::M
 	p::P 
 end
@@ -8,29 +8,31 @@ Flux.@functor DenseNode
 
 
 Distributions.logpdf(m::DenseNode, x::AbstractVector) = logpdf(m, reshape(x, :, 1))[1]
+Distributions.logpdf(m::DenseNode, x::AbstractVector, s::NoScope) = logpdf(m, reshape(x, :, 1))[1]
 function Distributions.logpdf(m::DenseNode, x::AbstractMatrix{T}) where {T}
 	x, l = m.m((x,zero(T)))
 	logpdf(m.p, x) .+ l[:]
 end
 
-function Distributions.logpdf(m::M, x::AbstractMatrix) where {M<: MvNormal{T,Distributions.PDMats.ScalMat{T},FillArrays.Zeros{T,1,Tuple{Base.OneTo{Int64}}}}} where {T}
-	log_normal(x, m.μ)[:]
+function Distributions.logpdf(m::DenseNode, x::AbstractMatrix{T}, s::AbstractScope) where {T}
+	x, l, _ = m.m((x, zero(T), s))
+	logpdf(m.p, x, s) .+ l[:]
 end
 
-function pathlogpdf(m::DenseNode, x::AbstractMatrix{T}, path) where {T}
-	x, l = m.m((x,zero(T)))
-	pathlogpdf(m.p, x, path) .+ l[:]
+function treelogpdf(m::DenseNode, x::AbstractMatrix{T}, path) where {T}
+	s = path[1]
+	x, l, _ = m.m((x, zero(T), s))
+	treelogpdf(m.p, x, path[2]) .+ l[:]
 end
 
 pathcount(m::DenseNode) = pathcount(m.p)
-samplepath(m::DenseNode) = samplepath(m.p)
-_updatelatent!(m::DenseNode, path) = _updatelatent!(m.p, path)
-zerolatent!(m::DenseNode) = zerolatent!(m.p)
-normalizelatent!(m::DenseNode) = normalizelatent!(m.p)
+samplepath(m::DenseNode) = (NoScope(), samplepath(m.p))
+samplepath(m::DenseNode, s::AbstractScope) = (s, samplepath(m.p, s))
+updateprior!(ps::Priors, m::DenseNode, path) = updateprior!(ps, m.p, path)
 
-function _mappath(m::DenseNode, x::AbstractMatrix{T}) where {T}
-	x, l = m.m((x,zero(T)))
-	lkl, path = _mappath(m.p, x)
+function _maptree(m::DenseNode, x::AbstractMatrix{T}, s::AbstractScope = NoScope()) where {T}
+	x, l = m.m((x, zero(T), s))
+	lkl, path = _maptree(m.p, x, s)
 	return(lkl .+ l[:], path)
 end
 

@@ -2,6 +2,7 @@ using SumDenseProduct, Test, Distributions
 include("builder.jl")
 include("productnode.jl")
 include("maxpath.jl")
+include("scope.jl")
 
 
 @testset "sampling" begin
