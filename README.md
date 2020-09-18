@@ -1,10 +1,13 @@
 # SumProductTransform.jl
 
+Is an experimental package for experimenting with SumProductTransformation networks. The package puts emphasis on flexibility, which means that it is not super fast, but can be safely used for flexible experimentation 
+
 An experimental implementation of a generalization of a Sum-Product networks by a Dense node.
 
-*Background:* The Sum-Product networks is a hierarchical model with a tree structure composed by a two type of nodes and lists being probability distributions. Nodes are: 
-* **SumNode** is a mixture model with components being either (ProductNode, List, or another SumNode)
-* **ProductNode** is product of two (multivariate) random variables
+*Background:* The Sum-Product-Transform networks is a hierarchical model with a tree structure composed by following nodes: 
+* **SumNode** is a mixture model with components being either (ProductNode, List, or another SumNode);
+* **ProductNode** is product of random variables assuming their independency;
+* **TransformationNode** implements a change of variables formula;
 
 The main advantage of SumProduct networks is that you can efficiently calculate the exact likelihood, marginals, and you can sample from them.
 
