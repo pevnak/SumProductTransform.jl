@@ -14,6 +14,7 @@ The change of variables in TransformationNode can encapsulate anything which all
 
 
 Let's go through a commented example. First, we initiate libraries we use
+
 ```julia
 using ToyProblems, Distributions, SumProductTransform, Unitary, Flux, Setfield
 using SumProductTransform: fit!, maptree, samplepath
@@ -24,6 +25,7 @@ x = flower2(Float32, 1000, npetals = 9)
 ```
 
 To create a Gaussian Mixture Model with 9 components and Normal distribution on leaves with full covariance, we use a single sumnodes with `MvNormal` transformed by Affine distribution `SVDDense(d)`. This is a way for us to implement general normal distribution. If you fancy a normal distribution with non-zeros only on diagonal, use `ScaleShift(d)` instead of `SVDDense(d).` To fit the model on data `x` use `fit!` function. 
+
 ```
 d = size(x,1)
 ncomponents = 9
@@ -36,6 +38,7 @@ history = fit!(model, x, batchsize, nsteps)
 To calculate the loglikelihood on samples `x` use `logpdf(model, x)` and to sample from the model, use `rand(model)`.
 
 To create a simple SumProductNetwork, we can do
+
 ```
 components = map(1:ncomponents) do _
   p₁ = SumNode([TransformationNode(ScaleShift(1), MvNormal(1, 1f0)) for _ in 1:ncomponents])
@@ -47,6 +50,7 @@ model = SumNode(components)
 and you can fit it the same way as above.
 
 Finally, to create a SumProductTransform network, you can do
+
 ```
 ncomponents = 3
 nlayers = 3
