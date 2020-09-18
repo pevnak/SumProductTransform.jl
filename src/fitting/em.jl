@@ -25,7 +25,7 @@ function em!(model, X, batchsize::Int, maxsteps::Int; check = 1000, minimum_impr
 		i += check
 		newlkl = @timeit to "validation" (-mean(batchlogpdf(model, xval, batchsize)))
 		println("$(i): $(-newlkl)")
-		display(SumDenseProduct.to)
+		display(SumProductTransform.to)
 		if oldlkl - newlkl < minimum_improvement 
 			@info "stopping after $(i) steps due to minimum improvement not met"
 			break;

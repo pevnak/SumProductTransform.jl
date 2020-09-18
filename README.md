@@ -15,7 +15,7 @@ The model is trained using the standard SGD and its variations
 
 ### God, give me dataset!!!   MNIST
 ```julia
-using Flux, Flux.Data.MNIST, SumDenseProduct, IterTools, StatsBase, Distributions, Unitary
+using Flux, Flux.Data.MNIST, SumProductTransform, IterTools, StatsBase, Distributions, Unitary
 using Images
 using Base.Iterators: partition
 using Flux: throttle, train!, Params

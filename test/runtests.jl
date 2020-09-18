@@ -1,4 +1,4 @@
-using SumDenseProduct, Test, Distributions
+using SumProductTransform, Test, Distributions
 # include("builder.jl")
 include("productnode.jl")
 include("maxtree.jl")
@@ -40,7 +40,7 @@ end
 	    x = randn(length(m), 100)
 	    segments = [i:i+9 for i in 1:10:100]
 	    ps = Flux.params(m)
-	    gr1 = SumDenseProduct.threadedgrad(i -> sum(logpdf(m, x[:,i])), ps, segments)
+	    gr1 = SumProductTransform.threadedgrad(i -> sum(logpdf(m, x[:,i])), ps, segments)
 	    gr2 = gradient(() -> mean(logpdf(m, x)), ps)
 	    @test all(isapprox(gr1[p] ./ 100, gr2[p], atol = 1e-6) for p in ps)
 	    # for p in ps

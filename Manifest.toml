@@ -230,6 +230,12 @@ git-tree-sha1 = "05097d81898c527e3bf218bb083ad0ead4378e5f"
 uuid = "61eb1bfa-7361-4325-ad38-22787b887f55"
 version = "0.6.1"
 
+[[HierarchicalUtils]]
+deps = ["DataStructures"]
+git-tree-sha1 = "022d33a082991d1edcfc8e8acaaa2cfb86ac952e"
+uuid = "f9ccea15-0695-44b9-8113-df7c26ae4fa9"
+version = "1.1.0"
+
 [[IRTools]]
 deps = ["InteractiveUtils", "MacroTools", "Test"]
 git-tree-sha1 = "a8d88c05a23b44b4da6cf4fb5659e13ff95e0f47"

@@ -1,8 +1,10 @@
-using ToyProblems, Distributions, SumDenseProduct, Unitary, Flux, Setfield
+using ToyProblems, Distributions, SumProductTransform, Unitary, Flux, Setfield
 using Flux:throttle
-using SumDenseProduct: fit!, maptree, samplepath
+using SumProductTransform: fit!, maptree, samplepath
 using ToyProblems: flower2
 using Unitary: ScaleShift, SVDDense
+
+HierarchicalUtils.printkeys(ch::NamedTuple) = ["$(k.first): " for k in ch]
 
 using Plots
 plotly()

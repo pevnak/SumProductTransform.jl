@@ -1,6 +1,6 @@
-using ToyProblems, Distributions, SumDenseProduct, Unitary, Flux, LinearAlgebra, SpecialFunctions
+using ToyProblems, Distributions, SumProductTransform, Unitary, Flux, LinearAlgebra, SpecialFunctions
 using SparseArrays, StatsBase
-using SumDenseProduct: logsumexp, samplepath, treelogpdf, batchtreelogpdf
+using SumProductTransform: logsumexp, samplepath, treelogpdf, batchtreelogpdf
 using Flux:throttle
 
 using Plots
@@ -31,7 +31,7 @@ xtst = flower(Float32,2000)
 
 K = 19
 repetitions = 6
-allpath = [(i, (SumDenseProduct.NoScope(), ())) for i in 1:K]
+allpath = [(i, (SumProductTransform.NoScope(), ())) for i in 1:K]
 model = SumNode([TransformationNode(Unitary.SVDDense(2, identity, :butterfly), MvNormal(2,1f0)) for _ in 1:K])
 qα = Chain(Dense(2,4*K,relu), Dense(4*K,4*K,relu), Dense(4*K,K)) 
 ps = Flux.params(model)

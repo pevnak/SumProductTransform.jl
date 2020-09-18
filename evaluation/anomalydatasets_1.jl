@@ -9,7 +9,7 @@ end
 settings = parse_args(ARGS, s; as_symbols=true)
 
 @everywhere begin
-  using ADatasets, SumDenseProduct, Flux, IterTools, StatsBase, Distributions, Unitary
+  using ADatasets, SumProductTransform, Flux, IterTools, StatsBase, Distributions, Unitary
   using ADatasets: makeset, loaddataset, subsampleanomalous
   using Flux: throttle, train!, Params
   using EvalCurves, DrWatson, BSON

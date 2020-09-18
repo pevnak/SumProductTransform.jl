@@ -1,36 +1,3 @@
-module SumDenseProduct
-using Distributions, NNlib, Flux, Unitary, Zygote, StatsBase, FillArrays
-
-const COLORS = [:blue, :red, :green, :yellow, :cyan, :magenta]
-
-function paddedprint(io, s...; color=:default, pad=[])
-    for (c, p) in pad
-        printstyled(io, p, color=c)
-    end
-    printstyled(io, s..., color=color)
-end
-
-"""
-	A fallback method
-"""
-function dsprint(io, s ; pad = [])
-	paddedprint(io, s, pad = pad)
-end
-
-function dsprint(io::IO, n::MvNormal; pad=[])
-    c = COLORS[(length(pad)%length(COLORS))+1]
-    paddedprint(io, " MvNormal\n", color=c)
-end
-
-
-function logsumexp(x; dims = :)
-	xm = maximum(x, dims = dims)
-	log.(sum(exp.(x .- xm), dims = dims)) .+ xm
-end
-
-logsoftmax(x; dims = :) = x .- logsumexp(x, dims = dims)
-softmax(x; dims = :) = exp.(logsoftmax(x, dims = dims))
-
 log_normal(x) = - sum(x.^2, dims=1) / 2 .- size(x,1)*log(Float32(2π)) / 2
 log_normal(x,μ) = log_normal(x .- μ)
 log_normal(x,μ, σ2::T) where {T<:Number} = - sum((@. ((x - μ)^2)/σ2), dims=1)/2 .- size(x,1)*log(σ2*2π)/2
@@ -43,7 +10,6 @@ end
 _maptree(p::MvNormal, x::AbstractMatrix) = (logpdf(p, x)[:], fill(tuple(), size(x,2)))
 batchlogpdf(p, x, bs::Int) = reduce(vcat, map(i -> logpdf(p, x[:,i]), Iterators.partition(1:size(x,2), bs)))
 
-
 """
     pathcount(m)
 
@@ -55,7 +21,7 @@ pathcount(m) = 1
     treelogpdf(p, x, path)
 
     logpdf of samples `x` calculated along the `path` determining components in sumnodes (at the moment)
-    For distributions outside the SumDenseProduct it falls back to logpdf(p, x).
+    For distributions outside the SumProductTransform it falls back to logpdf(p, x).
 """
 treelogpdf(m, x, path) = logpdf(m, x)
 batchtreelogpdf(m, x, path) = map(i -> treelogpdf(m, x[:,i:i], path[i])[1], 1:length(path))
@@ -77,17 +43,6 @@ function priors(m)
   return ps
 end
 
-include("priors.jl")
-include("threadedgrads.jl")
-include("sumnode.jl")
-include("transformationnode.jl")
-include("productnode.jl")
-include("modelbuilders.jl")
-include("fit.jl")
-include("smartinit.jl")
-include("fitting/em.jl")
-
-Distributions.logpdf(m::T, x::AbstractVector) where {T<:Union{SumNode, TransformationNode, ProductNode}} = logpdf(m, reshape(x, :, 1))[1]
 """
     path = samplepath(m)
 
@@ -96,8 +51,10 @@ Distributions.logpdf(m::T, x::AbstractVector) where {T<:Union{SumNode, Transform
 """
 samplepath(m) = tuple()
 
-export SumNode, TransformationNode, ProductNode
-export densesharedmixture, nosharedmixture, allsharedmixture, priors, updatelatent!, buildmixture, pathcount, batchlogpdf
-export em!, fit!
+####
+#  compatibility with HierarchicalUtils
+####
+HierarchicalUtils.NodeType(::Type{<:MvNormal}) = LeafNode()
+HierarchicalUtils.noderepr(node::MvNormal) = "normal"
 
-end # module
+

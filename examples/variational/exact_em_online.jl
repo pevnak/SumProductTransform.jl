@@ -1,6 +1,6 @@
-using ToyProblems, Distributions, SumDenseProduct, Unitary, Flux, LinearAlgebra, SpecialFunctions
+using ToyProblems, Distributions, SumProductTransform, Unitary, Flux, LinearAlgebra, SpecialFunctions
 using SparseArrays, StatsBase
-using SumDenseProduct: logsumexp
+using SumProductTransform: logsumexp
 using Flux:throttle
 using Plots
 include("distributions.jl")

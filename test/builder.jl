@@ -1,4 +1,4 @@
-using SumDenseProduct, Test, Flux, Distributions
+using SumProductTransform, Test, Flux, Distributions
 
 @testset "testing model generators: number of priors and parameters" begin
 	m = allsharedmixture(2, 8, 1)

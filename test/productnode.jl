@@ -1,4 +1,4 @@
-using SumDenseProduct, Test, Distributions, Flux
+using SumProductTransform, Test, Distributions, Flux
 
 @testset "ProductNode --- forward" begin
 	p = (MvNormal([0],1), MvNormal([1],1))

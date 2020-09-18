@@ -16,6 +16,9 @@ end
 
 Flux.@functor ProductNode
 Flux.trainable(m::ProductNode) = (m.components,)
+Base.length(m::ProductNode) = m.dimensions[end].stop
+Base.getindex(m::ProductNode, i...) = getindex(m.components, i...)
+
 
 """
 	ProductNode(ps::Tuple)
@@ -34,6 +37,10 @@ function ProductNode(ps::Tuple)
 	ProductNode(ps, tuple(dimensions...))
 end
 
+
+####
+#	Functions for calculating full likelihood
+####
 function Distributions.logpdf(m::ProductNode, x)
 	m
 	o = logpdf(m.components[1], x[m.dimensions[1],:])
@@ -43,6 +50,10 @@ function Distributions.logpdf(m::ProductNode, x)
 	o
 end
 
+
+####
+#	Functions supporting calculations of likelihood along trees and their sampling
+####
 function treelogpdf(p::ProductNode, x, path)
 	o = treelogpdf(p.components[1], x[p.dimensions[1],:], path[1])
 	for i in 2:length(p.components)
@@ -50,16 +61,8 @@ function treelogpdf(p::ProductNode, x, path)
 	end
 	o
 end
-
 pathcount(m::ProductNode) = mapreduce(n -> pathcount(n), *, m.components)
 samplepath(m::ProductNode) = map(samplepath, m.components)
-
-function updateprior!(ps::Priors, m::ProductNode, path)
-	for i in 1:length(m.components)
-		updateprior!(ps, m.components[i], path[i])
-	end
-end
-
 
 function _maptree(m::ProductNode, x)
 	o, path = _maptree(m.components[1], x[m.dimensions[1],:],)
@@ -72,31 +75,25 @@ function _maptree(m::ProductNode, x)
 	o, path
 end
 
+
+####
+#	Functions for updating prior values by expectation
+####
+function updateprior!(ps::Priors, m::ProductNode, path)
+	for i in 1:length(m.components)
+		updateprior!(ps, m.components[i], path[i])
+	end
+end
+
+
+####
+#	Functions for sampling the model
+####
 Base.rand(m::ProductNode) = vcat([rand(p) for p in m.components]...)
 
 
-Base.length(m::ProductNode) = m.dimensions[end].stop
-Base.getindex(m::ProductNode, i...) = getindex(m.components, i...)
-
-
-Base.show(io::IO, z::ProductNode) = dsprint(io, z)
-function dsprint(io::IO, n::ProductNode; pad=[])
-    c = COLORS[(length(pad)%length(COLORS))+1]
-    paddedprint(io, "Product\n", color=c)
-
-    m = length(n.components)
-    for i in 1:(m-1)
-    	if typeof(n.components[i]) <: Distributions.MvNormal
-    		paddedprint(io, "  ├── MvNormal\n", color=c, pad=pad)
-    	else
-	        paddedprint(io, "  ├── ", color=c, pad=pad)
-	        dsprint(io, n.components[i], pad=[pad; (c, "  │   ")])
-	    end
-    end
-	if typeof(n.components[end]) <: Distributions.MvNormal
-	    paddedprint(io, "  └──  MvNormal\n", color=c, pad=pad)
-	else
-	    paddedprint(io, "  └── ", color=c, pad=pad)
-	    dsprint(io, n.components[end], pad=[pad; (c, "      ")])
-	end
-end
+####
+#	Functions for making the library compatible with HierarchicalUtils
+####
+HierarchicalUtils.NodeType(::Type{<:ProductNode}) = InnerNode()
+HierarchicalUtils.printchildren(node::ProductNode) = node.components

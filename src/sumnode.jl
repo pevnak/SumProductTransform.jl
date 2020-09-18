@@ -1,5 +1,6 @@
 using StatsBase
 
+
 struct SumNode{T,C}
 	components::Vector{C}
 	prior::Vector{T}
@@ -29,11 +30,29 @@ Base.length(m::SumNode) = length(m.components[1])
 
 Flux.@functor SumNode
 
-"""
-	treelogpdf(p::SumNode, x, tree::Vector{Vector{Int}})
 
-	logpdf of samples `x` calculated along the `tree`, which determine only 
-	subset of models
+####
+#	Functions for calculating full likelihood
+####
+"""
+	logpdf(node, x)
+
+	log-likelihood of samples `x` of a model `node`
+"""
+function Distributions.logpdf(m::SumNode, x::AbstractMatrix)
+	lkl = transpose(hcat(map(c -> logpdf(c, x) ,m.components)...))
+	w = m.prior .- logsumexp(m.prior)
+	logsumexp(w .+ lkl, dims = 1)[:]
+end
+
+
+####
+#	Functions supporting calculations of likelihood along trees and their sampling
+####
+"""
+	treelogpdf(node, x, tree)
+
+	logpdf of samples `x` calculated along the `tree`, which determine only  subset of models
 """
 function treelogpdf(p::SumNode, x, tree) 
 	treelogpdf(p.components[tree[1]], x, tree[2])
@@ -42,13 +61,18 @@ end
 """
 	sampletree(m)
 
-	samples tree determining subset of the model
+	randomly sample a `tree` from the SPTN model
 """
-function sampletree(m::SumNode, s...) 
+function sampletree(m::SumNode) 
 	i = sample(Weights(softmax(m.prior)))
-	(i, sampletree(m.components[i], s...))
+	(i, sampletree(m.components[i]))
 end
 
+"""
+	(likelihood, tree) = _maptree(m, x)
+
+	`likelihood` of the most probable `tree` for a model `m` of sample `x` 
+"""
 function _maptree(m::SumNode, x::AbstractArray{T}) where {T}
 	n = length(m.components)
 	lkl, tree = _maptree(m.components[1], x)
@@ -69,21 +93,10 @@ end
 
 treecount(m::SumNode) = mapreduce(treecount, +, m.components)
 
-Base.rand(m::SumNode) = rand(m.components[sample(Weights(m.prior))])
 
-"""
-	logpdf(m::MixtureModel, x)
-
-	log-likelihood on samples `x`. During evaluation, weights of mixtures are taken into the account.
-	During training, the prior of the sample is one for the most likely component and zero for the others.
-"""
-
-function Distributions.logpdf(m::SumNode, x::AbstractMatrix)
-	lkl = transpose(hcat(map(c -> logpdf(c, x) ,m.components)...))
-	w = m.prior .- logsumexp(m.prior)
-	logsumexp(w .+ lkl, dims = 1)[:]
-end
-
+####
+#	Functions for updating prior values by expectation
+####
 function updateprior!(ps::Priors, m::SumNode, tree)
 	p = get(ps, m.prior, similar(m.prior) .= 0)
 	component = tree[1]
@@ -91,19 +104,18 @@ function updateprior!(ps::Priors, m::SumNode, tree)
 	updateprior!(ps, m.components[component], tree[2])
 end
 
-Base.show(io::IO, z::SumNode{T,C}) where {T,C} = dsprint(io, z)
-function dsprint(io::IO, n::SumNode; pad=[])
-	w = softmax(n.prior) .+ 0.001f0
-	w = w ./ sum(w)
-    c = COLORS[(length(pad)%length(COLORS))+1]
-    paddedprint(io, "Mixture\n", color=c)
 
-    m = length(n.components)
-    for i in 1:(m-1)
-        paddedprint(io, "  ├── $(w[i])", color=c, pad=pad)
-        dsprint(io, n.components[i], pad=[pad; (c, "  │   ")])
-    end
-    paddedprint(io, "  └── $(w[end])", color=c, pad=pad)
-    dsprint(io, n.components[end], pad=[pad; (c, "      ")])
-end
+####
+#	Functions for sampling the model
+####
+Base.rand(m::SumNode) = rand(m.components[sample(Weights(m.prior))])
+
+
+####
+#	Functions for making the library compatible with HierarchicalUtils
+####
+HierarchicalUtils.noderepr(node::SumNode) = "SumNode"
+HierarchicalUtils.NodeType(::Type{<:SumNode}) = InnerNode()
+# HierarchicalUtils.printchildren(node::SumNode) = [Symbol(w) => ch for (w, ch) in zip(node.prior, node.components)]
+HierarchicalUtils.printchildren(node::SumNode) = tuple(node.components...)
 

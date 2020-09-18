@@ -1,5 +1,5 @@
-using SumDenseProduct, Distributions
-using SumDenseProduct: FullScope, Scope, samplepath, treelogpdf, SVDDense
+using SumProductTransform, Distributions
+using SumProductTransform: FullScope, Scope, samplepath, treelogpdf, SVDDense
 
 m = TransformationNode(
 	SVDDense(2, identity),

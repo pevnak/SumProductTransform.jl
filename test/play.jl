@@ -1,5 +1,5 @@
-using ToyProblems, Distributions, SumDenseProduct, Unitary, Flux, LinearAlgebra
-using SumDenseProduct: buildmixture, updatelatent!, fit!
+using ToyProblems, Distributions, SumProductTransform, Unitary, Flux, LinearAlgebra
+using SumProductTransform: buildmixture, updatelatent!, fit!
 using Flux:throttle
 
 using Plots

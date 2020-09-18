@@ -1,5 +1,5 @@
-using SumDenseProduct, Distributions, Unitary, Test
-using SumDenseProduct: maptree, treelogpdf, batchtreelogpdf
+using SumProductTransform, Distributions, Unitary, Test
+using SumProductTransform: maptree, treelogpdf, batchtreelogpdf
 
 @testset "testing the maptree" begin
 	d = 4

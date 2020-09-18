@@ -92,7 +92,7 @@ function samplinggrad(model, X, bestpath, batchsize, maxpath, ps, pickbest::Bool
 	@timeit to "samplinggrad" begin
 		idxs = sample(1:size(X,2), batchsize, replace = false)
 		x = X[:, idxs]
-		@timeit to "samplepdf" path = SumDenseProduct.samplepdf!(view(bestpath,idxs), model, x, maxpath, pickbest)
+		@timeit to "samplepdf" path = SumProductTransform.samplepdf!(view(bestpath,idxs), model, x, maxpath, pickbest)
 		bp = bestpath[idxs]
 		@timeit to "gradient" threadedgrad(i -> -sum(batchtreelogpdf(model, x[:,i], bp[i])), ps, size(x,2))
 	end
@@ -102,7 +102,7 @@ function samplinggrad(model, X, batchsize, maxpath, ps, pickbest::Bool = true)
 	@timeit to "samplinggrad" begin
 		idxs = sample(1:size(X,2), batchsize, replace = false)
 		x = X[:, idxs]
-		@timeit to "samplepdf" path = SumDenseProduct.samplepdf!(model, x, maxpath, pickbest)
+		@timeit to "samplepdf" path = SumProductTransform.samplepdf!(model, x, maxpath, pickbest)
 		@timeit to "gradient" threadedgrad(i -> -sum(batchtreelogpdf(model, x[:,i], path[i])), ps, size(x,2))
 	end
 end
