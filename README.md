@@ -2,6 +2,8 @@
 
 Is an experimental package for experimenting with SumProductTransformation networks (their main advantage is the exact calculation of likelihood). The package puts emphasis on flexibility, which means that it is not super fast, but can be safely used for flexible experimentation. It has been created as a testbed for the paper *Sum-Product-Transform Networks: Exploiting Symmetries using Invertible Transformations, Tomas Pevny, Vasek Smidl, Martin Trapp, Ondrej Polacek, Tomas Oberhuber, 2020* [https://arxiv.org/abs/2005.01297](https://arxiv.org/abs/2005.01297)
 
+**The package depends on** [https://github.com/pevnak/Unitary.jl](https://github.com/pevnak/Unitary.jl) which is not registered, as is not this package `SumProductTransform`.
+
 An experimental implementation of a generalization of a Sum-Product networks by a Dense node.
 
 *Background:* The Sum-Product-Transform networks is a hierarchical model with a tree structure composed by following nodes: 
