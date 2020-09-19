@@ -96,4 +96,5 @@ Base.rand(m::ProductNode) = vcat([rand(p) for p in m.components]...)
 #	Functions for making the library compatible with HierarchicalUtils
 ####
 HierarchicalUtils.NodeType(::Type{<:ProductNode}) = InnerNode()
+HierarchicalUtils.noderepr(::ProductNode) = "ProductNode"
 HierarchicalUtils.printchildren(node::ProductNode) = node.components
