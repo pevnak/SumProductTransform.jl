@@ -10,8 +10,8 @@ Flux.@functor TransformationNode
 #	Functions for calculating full likelihood
 ####
 function Distributions.logpdf(m::TransformationNode, x::AbstractMatrix{T}) where {T}
-	x, l = m.m((x,zero(T)))
-	logpdf(m.p, x) .+ l[:]
+	z, l = forward(m.m, x)
+	logpdf(m.p, z) .+ l[:]
 end
 
 
@@ -19,8 +19,8 @@ end
 #	Functions supporting calculations of likelihood along trees and their sampling
 ####
 function treelogpdf(m::TransformationNode, x::AbstractMatrix{T}, tree) where {T}
-	x, l = m.m((x, zero(T)))
-	treelogpdf(m.p, x, tree) .+ l[:]
+	z, l = forward(m.m, x)
+	treelogpdf(m.p, z, tree) .+ l[:]
 end
 
 treecount(m::TransformationNode) = treecount(m.p)
@@ -28,7 +28,7 @@ treecount(m::TransformationNode) = treecount(m.p)
 sampletree(m::TransformationNode) = sampletree(m.p)
 
 function _maptree(m::TransformationNode, x::AbstractMatrix{T}) where {T}
-	z, l = m.m((x, zero(T)))
+	z, l = forward(m.m, x)
 	lkl, tree = _maptree(m.p, z)
 	return(lkl .+ l[:], tree)
 end

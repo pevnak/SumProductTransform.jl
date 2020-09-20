@@ -1,5 +1,12 @@
 module SumProductTransform
-using Distributions, NNlib, Flux, Unitary, Zygote, StatsBase, FillArrays
+using Distributions
+using NNlib
+using Flux
+using Unitary
+using Zygote
+using StatsBase
+using FillArrays
+using Bijectors
 using HierarchicalUtils
 using HierarchicalUtils: NodeType, InnerNode, LeafNode, printchildren
 
