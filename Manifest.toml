@@ -18,6 +18,11 @@ git-tree-sha1 = "95f8bda0555209f122bc796b0382ea4a3a121720"
 uuid = "79e6a3ab-5dfb-504d-930d-738a2a938a0e"
 version = "2.1.0"
 
+[[ArgCheck]]
+git-tree-sha1 = "dedbbb2ddb876f899585c4ec4433265e3017215a"
+uuid = "dce04be8-c92d-5529-be00-80e4d2c0e197"
+version = "2.1.0"
+
 [[ArrayLayouts]]
 deps = ["Compat", "FillArrays", "LinearAlgebra", "SparseArrays"]
 git-tree-sha1 = "d6f1ecde467019346f7601fb2ee58cb2bc60d121"
@@ -37,6 +42,12 @@ deps = ["JSON", "Logging", "Printf", "Statistics", "UUIDs"]
 git-tree-sha1 = "9e62e66db34540a0c919d72172cc2f642ac71260"
 uuid = "6e4b80f9-dd63-53aa-95a3-0cdb28fa8baf"
 version = "0.5.0"
+
+[[Bijectors]]
+deps = ["ArgCheck", "Compat", "Distributions", "LinearAlgebra", "MappedArrays", "NNlib", "Random", "Reexport", "Requires", "Roots", "SparseArrays", "Statistics", "StatsFuns", "Unitary"]
+path = "/Users/tomas.pevny/.julia/dev/Bijectors"
+uuid = "76274a88-744f-5084-9051-94815aaf08c4"
+version = "0.8.5"
 
 [[BinaryProvider]]
 deps = ["Libdl", "Logging", "SHA"]
@@ -446,6 +457,12 @@ deps = ["Libdl", "Pkg"]
 git-tree-sha1 = "d76185aa1f421306dec73c057aa384bad74188f0"
 uuid = "f50d1b31-88e8-58de-be2c-1cc44531875f"
 version = "0.2.2+1"
+
+[[Roots]]
+deps = ["Printf"]
+git-tree-sha1 = "1211c7c1928c1ed29cdcef65979b7a791e3b9fbe"
+uuid = "f2b01f46-fcfa-551c-844a-d8ac1e96c665"
+version = "1.0.5"
 
 [[SHA]]
 uuid = "ea8e919c-243c-51af-8825-aaa63cd721ce"

@@ -1,11 +1,10 @@
-using Unitary
 addnoise(noisedim, pnoise, p) = noisedim == 0 ? p : ProductNode((pnoise(noisedim), p))
 
 function transform(d, σ, unitary)
 	if unitary ∈ [:butterfly, :householder]
-		return(Unitary.SVDDense(d, σ, unitary))
+		return(SVDDense(d, σ, unitary))
 	elseif unitary ∈ [:lu]
-		return(Unitary.LUDense(d, σ))
+		return(LUDense(d, σ))
 	else 
 		error("Unknown type of unitary function $(unitary)")
 	end

@@ -1,12 +1,13 @@
-using SumProductTransform, Distributions, Unitary, Test
+using SumProductTransform, Distributions, Test
 using SumProductTransform: maptree, treelogpdf, batchtreelogpdf
+using SumProductTransform: SVDDense
 
 @testset "testing the maptree" begin
 	d = 4
 	x = randn(d,10)
 	p = MvNormal(4,1)
-	m1 = TransformationNode(Unitary.SVDDense(d, identity), p)
-	m2 = TransformationNode(Unitary.SVDDense(d, identity), p)
+	m1 = TransformationNode(SVDDense(d, identity), p)
+	m2 = TransformationNode(SVDDense(d, identity), p)
 
 	@test maptree(m1, x)[1] ≈ logpdf(m1, x)
 	@test all(typeof.(maptree(m1, x)[2]) .==  typeof(tuple()))

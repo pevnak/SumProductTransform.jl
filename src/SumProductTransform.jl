@@ -12,6 +12,7 @@ logsoftmax(x; dims = :) = x .- logsumexp(x, dims = dims)
 softmax(x; dims = :) = exp.(logsoftmax(x, dims = dims))
 
 
+include("layers/layers.jl")
 include("priors.jl")
 include("distributions.jl")
 include("threadedgrads.jl")

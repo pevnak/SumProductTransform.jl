@@ -1,5 +1,11 @@
 using SumProductTransform, Test, Distributions
 # include("builder.jl")
+include("layers/diagonalrectangular.jl")
+include("layers/svd.jl")
+include("layers/inverse.jl")
+include("layers/ludense.jl")
+include("layers/jacobian.jl")
+
 include("productnode.jl")
 include("maxtree.jl")
 
