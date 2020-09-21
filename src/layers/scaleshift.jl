@@ -37,6 +37,12 @@ end
 
 logabsdetjac(m::ScaleShift, x) = forward(m, x).logabsdetjac
 
+function (m::ScaleShift)(xx::Tuple)
+	x, logdet = xx
+	pre = (m.d * x .+ m.b)
+	g = _explicitgrad.(m.σ, pre)
+	(m.σ.(pre), logdet .+ sum(log.(g), dims = 1) .+ _logabsdet(m.d))
+end
 
 
 struct InvertedScaleShift{D, B, S}
