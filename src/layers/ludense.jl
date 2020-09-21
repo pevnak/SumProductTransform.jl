@@ -34,7 +34,7 @@ _ludense(n::Int, σ) = LUDense(lowup(Float32, n), 0.01f0.*randn(Float32,n), σ)
 _ldudense(n::Int, σ) = LUDense(lowdup(Float32, n), 0.01f0.*randn(Float32,n), σ)
 
 function _transform(m::LUDense, x)
-    z = m.m * x
+    z = m.m * x .+ m.b
     (transformed = m.σ.(z), z = z)
 end
 
