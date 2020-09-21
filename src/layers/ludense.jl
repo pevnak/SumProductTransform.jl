@@ -40,6 +40,12 @@ end
 
 (m::LUDense)(x::Unitary.AbstractMatVec) = _transform(m, x).transformed
 
+function (a::LUDense)(xx::Tuple{A,B}) where {A,B}
+	x, logdet = xx
+	pre = (a.m * x) .+ a.b
+	g = _explicitgrad.(a.σ, pre)
+	(a.σ.(pre), logdet .+ sum(log.(g), dims = 1) .+ _logabsdet(a.m))
+end
 
 function forward(m::LUDense, x::AbstractVecOrMat)
     transformed, z = _transform(m, x)

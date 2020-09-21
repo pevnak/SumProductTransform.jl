@@ -84,6 +84,13 @@ end
 
 logabsdetjac(m::SVDDense, x) = forward(m, x).logabsdetjac
 
+function (a::SVDDense)(xx::Tuple{A,B}) where {A,B}
+	x, logdet = xx
+	pre = a.u * (a.d * (a.v * x)) .+ a.b
+	g = _explicitgrad.(a.σ, pre)
+	(a.σ.(pre), logdet .+ sum(log.(g), dims = 1) .+ _logabsdet(a.d))
+end
+
 
 struct InvertedSVDDense{U, D, V, B, S} <: Bijector{1}
     u::U
