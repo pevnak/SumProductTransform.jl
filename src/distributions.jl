@@ -1,13 +1,4 @@
-log_normal(x) = - sum(x.^2, dims=1) / 2 .- size(x,1)*log(Float32(2π)) / 2
-log_normal(x,μ) = log_normal(x .- μ)
-log_normal(x,μ, σ2::T) where {T<:Number} = - sum((@. ((x - μ)^2)/σ2), dims=1)/2 .- size(x,1)*log(σ2*2π)/2
-
-#Let's do a little bit of function stealing
-Distributions.logpdf(p::MvNormal, x::AbstractMatrix) = log_normal(x)[:]
-function Distributions.logpdf(m::M, x::AbstractMatrix) where {M<: MvNormal{T,Distributions.PDMats.ScalMat{T},FillArrays.Zeros{T,1,Tuple{Base.OneTo{Int64}}}}} where {T}
-  log_normal(x, m.μ)[:]
-end
-_maptree(p::MvNormal, x::AbstractMatrix) = (logpdf(p, x)[:], fill(tuple(), size(x,2)))
+_maptree(p::Distribution, x::AbstractMatrix) = (logpdf(p, x)[:], fill(tuple(), size(x,2)))
 batchlogpdf(p, x, bs::Int) = reduce(vcat, map(i -> logpdf(p, x[:,i]), Iterators.partition(1:size(x,2), bs)))
 
 """
@@ -54,7 +45,5 @@ samplepath(m) = tuple()
 ####
 #  compatibility with HierarchicalUtils
 ####
-HierarchicalUtils.NodeType(::Type{<:MvNormal}) = LeafNode()
-HierarchicalUtils.noderepr(node::MvNormal) = "normal"
-
-
+HierarchicalUtils.NodeType(::Type{<:Distribution}) = LeafNode()
+HierarchicalUtils.noderepr(node::T) where {T<:Distribution} = "$(T)"

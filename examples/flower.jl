@@ -1,10 +1,9 @@
-using ToyProblems, Distributions, SumProductTransform, Unitary, Flux, Setfield
+using ToyProblems, DistributionsAD, SumProductTransform, Unitary, Flux, Setfield
 using Flux:throttle
 using SumProductTransform: fit!, maptree, samplepath
 using ToyProblems: flower2
-using Unitary: ScaleShift, SVDDense
-
-HierarchicalUtils.printkeys(ch::NamedTuple) = ["$(k.first): " for k in ch]
+using SumProductTransform: ScaleShift, SVDDense
+using DistributionsAD: TuringMvNormal
 
 using Plots
 plotly()
@@ -38,20 +37,20 @@ function plot_rand(m, n)
 end
 
 function gmm(d, n, unitary = :butterfly)
-  SumNode([TransformationNode(SVDDense(d, identity, unitary), MvNormal(d, 1f0)) for i in 1:n])
+  SumNode([TransformationNode(SVDDense(d, identity, unitary), TuringMvNormal(d, 1f0)) for i in 1:n])
 end
 
 function spn(n)
 	components = map(1:n) do _
-		p₁ = SumNode([TransformationNode(ScaleShift(1), MvNormal(1, 1f0)) for _ in 1:n])
-		p₂ = SumNode([TransformationNode(ScaleShift(1), MvNormal(1, 1f0)) for _ in 1:n])
+		p₁ = SumNode([TransformationNode(ScaleShift(1), TuringMvNormal(1, 1f0)) for _ in 1:n])
+		p₂ = SumNode([TransformationNode(ScaleShift(1), TuringMvNormal(1, 1f0)) for _ in 1:n])
 		p₁₂ = ProductNode((p₁, p₂))
 	end
 	SumNode(components)
 end
 
 function sptn(d, n, l)
-	m = TransformationNode(ScaleShift(d),  MvNormal(d,1f0))
+	m = TransformationNode(ScaleShift(d),  TuringMvNormal(d,1f0))
 	for i in 1:l
 		m = SumNode([TransformationNode(SVDDense(2, identity, :butterfly), m) for i in 1:n])
 	end

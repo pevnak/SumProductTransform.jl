@@ -38,5 +38,6 @@ Base.show(io::IO, ::MIME"text/plain", n::Union{SumNode, TransformationNode, Prod
 export SumNode, TransformationNode, ProductNode
 export densesharedmixture, nosharedmixture, allsharedmixture, priors, updatelatent!, buildmixture, pathcount, batchlogpdf
 export em!, fit!
+export SVDNode, ScaleShift
 
 end # module

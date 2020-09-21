@@ -39,7 +39,6 @@ end
 ####
 updateprior!(ps::Priors, m::TransformationNode, tree) = updateprior!(ps, m.p, tree)
 
-
 ####
 #	Functions for sampling the model
 ####
@@ -53,6 +52,6 @@ HierarchicalUtils.NodeType(::Type{<:TransformationNode}) = InnerNode()
 HierarchicalUtils.noderepr(node::TransformationNode) = "$(node.m) →"
 HierarchicalUtils.printchildren(node::TransformationNode) = (node.p,)
 
-HierarchicalUtils.NodeType(::Type{TransformationNode{T,P}}) where {T,P<:MvNormal} = LeafNode()
-HierarchicalUtils.noderepr(node::TransformationNode{T,P})  where {T,P<:MvNormal} = "$(node.m) → MvNormal"
-HierarchicalUtils.printchildren(node::TransformationNode{T,P}) where {T,P<:MvNormal} = tuple()
+HierarchicalUtils.NodeType(::Type{TransformationNode{T,P}}) where {T,P<:Distribution} = LeafNode()
+HierarchicalUtils.noderepr(node::TransformationNode{T,P})  where {T,P<:Distribution} = "$(node.m) → $(P)"
+HierarchicalUtils.printchildren(node::TransformationNode{T,P}) where {T,P<:Distribution} = tuple()
