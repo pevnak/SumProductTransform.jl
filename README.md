@@ -2,6 +2,8 @@
 
 Is an experimental package for experimenting with SumProductTransformation networks (their main advantage is the exact calculation of likelihood). The package puts emphasis on flexibility, which means that it is not super fast, but can be safely used for flexible experimentation. It has been created as a testbed for the paper *Sum-Product-Transform Networks: Exploiting Symmetries using Invertible Transformations, Tomas Pevny, Vasek Smidl, Martin Trapp, Ondrej Polacek, Tomas Oberhuber, 2020* [https://arxiv.org/abs/2005.01297](https://arxiv.org/abs/2005.01297)
 
+For an example of GMM, SPN, and SPTN you can see a Pluto notebook in `examples/pluto.jl`.
+
 **The package depends on** [https://github.com/pevnak/Unitary.jl](https://github.com/pevnak/Unitary.jl) which is not registered, as is not this package `SumProductTransform`.
 
 An experimental implementation of a generalization of a Sum-Product networks by a Dense node.
@@ -15,7 +17,7 @@ An experimental implementation of a generalization of a Sum-Product networks by 
 The change of variables in TransformationNode can encapsulate anything which allows calculation of `logabsdet` (e.g. flow models), but we prefer to implement it as a dense layer, i.e. ![f(x) = \sigma(W*x + b)](/docs/dense.svg), where `W` is a square matrics. In order to be able to efficiently calculate the determinant of Jacobian and invert `f`, `W` is represent in its SVD decomposition as `W = UDV` where `U` and `V` are unitary and `D` is diagonal. Group of Unitary matrices parametrized in a gradient descend friendly way are provided in the package https://github.com/pevnak/Unitary.jl
 
 
-Below is a commented example. Another tutorial is in `examples/pluto.jl` in form of an executable Pluto notebook. Let's go through a commented example. First, we initiate libraries we use
+### A commented example of GMM, SPN, and SPTN
 
 ```julia
 using ToyProblems, Distributions, SumProductTransform, Unitary, Flux, Setfield
