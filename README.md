@@ -14,7 +14,7 @@ An experimental implementation of a generalization of a Sum-Product networks by 
 * **ProductNode** is product of random variables assuming their independency;
 * **TransformationNode** implements a change of variables formula `x = f(z)` with the pdf transformed according to change of variables theorem. ![p(x) = \left|\frac{\partial f^{-1}(x)}{\partial x}\right| p(z)](/docs/change.svg).
 
-The change of variables in TransformationNode can encapsulate anything which allows calculation of `logabsdet` (e.g. flow models), but we prefer to implement it as a dense layer, i.e. ![f(x) = \sigma(W*x + b)](/docs/dense.svg), where `W` is a square matrics. In order to be able to efficiently calculate the determinant of Jacobian and invert `f`, `W` is represent in its SVD decomposition as `W = UDV` where `U` and `V` are unitary and `D` is diagonal. Group of Unitary matrices parametrized in a gradient descend friendly way are provided in the package https://github.com/pevnak/Unitary.jl
+The change of variables in TransformationNode can encapsulate anything which allows calculation of `logabsdet` (e.g. flow models), but we prefer to implement it as a dense layer, i.e. ![f(x) = \sigma(W*x + b)](/docs/dense.svg), where `W` is a square matrics. In order to be able to efficiently calculate the determinant of Jacobian and invert `f`, `W` is represent in its SVD decomposition as `W = UDV` where `U` and `V` are unitary and `D` is diagonal. Group of Unitary matrices parametrized in a gradient descend friendly way are provided in the package https://github.com/pevnak/Unitary.jl The toy problems are available at https://github.com/pevnak/ToyProblems.jl
 
 
 ### A commented example of GMM, SPN, and SPTN
