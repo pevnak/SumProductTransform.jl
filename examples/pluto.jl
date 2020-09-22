@@ -1,5 +1,5 @@
 ### A Pluto.jl notebook ###
-# v0.11.13
+# v0.11.14
 
 using Markdown
 using InteractiveUtils
@@ -8,10 +8,11 @@ using InteractiveUtils
 begin	
 	using Pkg
 	Pkg.activate(".")
-	using ToyProblems, Distributions, SumProductTransform, Unitary, Flux, Setfield
+	using ToyProblems, SumProductTransform, Unitary, Flux, Setfield
 	using SumProductTransform: fit!,logpdf
 	using ToyProblems: flower2
-	using Unitary: ScaleShift, SVDDense
+	using DistributionsAD: TuringMvNormal
+	using SumProductTransform: ScaleShift, SVDDense
 	using Plots
 	plotly()
 end;
@@ -68,7 +69,7 @@ md"""### Gaussian Mixture Model
 # ╔═╡ b89ca116-f9cb-11ea-01a3-3fa73e7d6645
 begin
 	ngmm_components = 144
-	init_normal(d) = TransformationNode(SVDDense(d), MvNormal(d, 1f0))
+	init_normal(d) = TransformationNode(SVDDense(d), TuringMvNormal(d, 1f0))
 	gmm_components = [init_normal(d) for i in 1:ngmm_components]
 	gmm = SumNode(gmm_components)
 end;
@@ -85,7 +86,7 @@ md"""### Sum Product network"""
 # ╔═╡ d66819e6-fa39-11ea-3cba-a3e5e4df656a
 begin 
 	spt_ncomponents = 9
-	Normal1D() = TransformationNode(ScaleShift(1), MvNormal(1, 1f0));
+	Normal1D() = TransformationNode(ScaleShift(1), TuringMvNormal(1, 1f0));
 	spn_components = map(1:spt_ncomponents) do _
 			p₁ = SumNode([Normal1D() for _ in 1:spt_ncomponents])
 			p₂ = SumNode([Normal1D() for _ in 1:spt_ncomponents])
@@ -107,7 +108,7 @@ with affine transformations and Normal distribution on leaves"""
 # ╔═╡ 3c6eb202-fa3c-11ea-38d3-610ae96a3755
 begin 
 	nsptn_components = 3
-	global sptn = TransformationNode(ScaleShift(2), MvNormal(2, 1f0));
+	global sptn = TransformationNode(ScaleShift(2), TuringMvNormal(2, 1f0));
 	for i in 1:3
 		global sptn
 		sptn = SumNode([TransformationNode(SVDDense(2), sptn) for i in 1:nsptn_components])
@@ -128,8 +129,8 @@ with nonlinear transformation on leaves"""
 # ╔═╡ 5e8c722c-fa53-11ea-2c10-b57c7f9119c1
 begin 
 	leaf = ProductNode((
-		SumNode([TransformationNode(Chain(SVDDense(1, selu), ScaleShift(1)), MvNormal(1, 1f0))  for _ in 1:3]),
-		SumNode([TransformationNode(Chain(SVDDense(1, selu), ScaleShift(1)), MvNormal(1, 1f0))  for _ in 1:3]),
+		SumNode([TransformationNode(Chain(SVDDense(1, selu), ScaleShift(1)), TuringMvNormal(1, 1f0))  for _ in 1:3]),
+		SumNode([TransformationNode(Chain(SVDDense(1, selu), ScaleShift(1)), TuringMvNormal(1, 1f0))  for _ in 1:3]),
 			))
 			
 	global sptn2 = leaf
