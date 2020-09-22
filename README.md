@@ -29,6 +29,7 @@ x = flower2(Float32, 1000, npetals = 9)
 ```
 
 
+
 To create a Gaussian Mixture Model with 9 components and Normal distribution on leaves with full covariance, we use a single sumnodes with `TuringMvNormal` transformed by Affine distribution `SVDDense(d)`  (MvNormal with full covariance `TuringDenseMvNormal` does not support Zygote, therefor this construction is prefered). This is a way for us to implement general normal distribution. If you fancy a normal distribution with non-zeros only on diagonal, use `ScaleShift(d)` instead of `SVDDense(d).` To fit the model on data `x` use `fit!` function. 
 
 ```
@@ -68,3 +69,33 @@ end
 
 ### Compatibility with Flux / Zygote
 The model is compatible with Flux / Zygote. So you can take parameters (weights in SumNodes, parameters of TransformationNodes), you just hit `ps = Flux.params(model)` and the gradient of `logpdf` is differentiable as `gradient(() -> logpdf(model, x), ps)`. The `fit!` is an optimized version of `train!` function which utilizes threading. 
+
+### Compatibility with Bijectors.jl
+`SVDDense`, `ScaleShift`, and `LUDense` implement the interface of `Bijectors.jl`, which means that you can use them the same way. **Caution!!!*** If you want to use some layers from bijectors, verify that `Flux.params` returns parameters.
+
+For example:
+```
+julia> using Flux
+julia> using Bijectors
+julia> Flux.params(PlanarLayer(2))
+Params([])
+```
+but if you register the layer with `Flux`
+```
+ Flux.@functor PlanarLayer
+ Flux.params(PlanarLayer(2))
+ ```
+ magic happens. 
+ This allows you to use `PlanarLayer` within SumProductTransform as 
+ ```
+ncomponents = 3
+nlayers = 3
+model = TransformationNode(PlanarLayer(d),  TuringMvNormal(d,1f0))
+for i in 1:nlayers
+  model = SumNode([TransformationNode(PlanarLayer(2), model) for i in 1:ncomponents])
+end
+
+history = fit!(model, x, 100, 20000)
+```
+
+
