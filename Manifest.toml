@@ -38,10 +38,10 @@ version = "0.2.6"
 uuid = "2a0f44e3-6c83-55bd-87e4-b1978d98bd5f"
 
 [[Bijectors]]
-deps = ["ArgCheck", "Compat", "Distributions", "LinearAlgebra", "MappedArrays", "NNlib", "Random", "Reexport", "Requires", "Roots", "SparseArrays", "Statistics", "StatsFuns", "Unitary"]
-path = "/Users/tomas.pevny/.julia/dev/Bijectors"
+deps = ["ArgCheck", "Compat", "Distributions", "LinearAlgebra", "MappedArrays", "NNlib", "Random", "Reexport", "Requires", "Roots", "SparseArrays", "Statistics", "StatsFuns"]
+git-tree-sha1 = "592165906d17456cc5595b9dad2369de16471b46"
 uuid = "76274a88-744f-5084-9051-94815aaf08c4"
-version = "0.8.5"
+version = "0.8.6"
 
 [[BinaryProvider]]
 deps = ["Libdl", "Logging", "SHA"]

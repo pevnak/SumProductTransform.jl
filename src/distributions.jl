@@ -16,6 +16,7 @@ pathcount(m) = 1
 """
 treelogpdf(m, x, path) = logpdf(m, x)
 batchtreelogpdf(m, x, path) = map(i -> treelogpdf(m, x[:,i:i], path[i])[1], 1:length(path))
+sampletree(m) = ()
 
 _priors(m) = nothing
 function priors!(ps, x, seen = Flux.IdSet())
