@@ -75,18 +75,6 @@ for n in [9, 18, 27, 36]
 	push!(plots, p)
 end
 
-ps2 = Flux.params(model)
-ps1 = Flux.params(model)
-gs1 = gradient(..., x)
-gs2 = gradient(..., y)
-
-for p in ps2
-	gs1[p] = gs2[p] 
-end
-
-Flux.update!(..., gs1)
-
-
 spn_models = []
 for n in 9:9:144
 	model = spn(n)

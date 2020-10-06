@@ -41,8 +41,8 @@ end
 
 function mstep!(model, ps, opt, x, batchsize)
 	xx = @timeit to "samplebatch" samplebatch(x, batchsize)
-	paths = @timeit to "samplepath" [samplepath(model) for i in 1:batchsize]
-	gs = @timeit to "gradient" threadedgrad(i -> -sum(batchtreelogpdf(model, xx[:,i], paths[i])), ps, size(xx,2))
-	# gs = @timeit to "gradient" gradient(() -> -sum(batchtreelogpdf(model, xx, paths)), ps)
+	trees = @timeit to "sampletree" [sampletree(model) for i in 1:batchsize]
+	gs = @timeit to "gradient" threadedgrad(i -> -sum(batchtreelogpdf(model, xx[:,i], trees[i])), ps, size(xx,2))
+	# gs = @timeit to "gradient" gradient(() -> -sum(batchtreelogpdf(model, xx, trees)), ps)
 	@timeit to "update!" Flux.Optimise.update!(opt, ps, gs)
 end

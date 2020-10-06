@@ -4,18 +4,18 @@ batchlogpdf(p, x, bs::Int) = reduce(vcat, map(i -> logpdf(p, x[:,i]), Iterators.
 """
     pathcount(m)
 
-    Number of possible path of a model. For distributions it defaults to one.
+    Number of possible trees of a model. For distributions it defaults to one.
 """
-pathcount(m) = 1
+treescount(m) = 1
 
 """
-    treelogpdf(p, x, path)
+    treelogpdf(p, x, trees)
 
-    logpdf of samples `x` calculated along the `path` determining components in sumnodes (at the moment)
+    logpdf of samples `x` calculated along the `trees` determining components in sumnodes (at the moment)
     For distributions outside the SumProductTransform it falls back to logpdf(p, x).
 """
-treelogpdf(m, x, path) = logpdf(m, x)
-batchtreelogpdf(m, x, path) = map(i -> treelogpdf(m, x[:,i:i], path[i])[1], 1:length(path))
+treelogpdf(m, x, trees) = logpdf(m, x)
+batchtreelogpdf(m, x, trees) = map(i -> treelogpdf(m, x[:,i:i], trees[i])[1], 1:length(trees))
 sampletree(m) = ()
 
 _priors(m) = nothing
@@ -36,12 +36,12 @@ function priors(m)
 end
 
 """
-    path = samplepath(m)
+    trees = sampletree(m)
 
-    sample a path trough the model, which can be used by treelogpdf to calculate the
-    pdf along this path.
+    sample a trees trough the model, which can be used by treelogpdf to calculate the
+    pdf along this trees.
 """
-samplepath(m) = tuple()
+sampletree(m) = tuple()
 
 ####
 #  compatibility with HierarchicalUtils
