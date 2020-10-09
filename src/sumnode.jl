@@ -22,10 +22,10 @@ _priors(m::SumNode) = m.prior
 """
 function SumNode(components::Vector) 
 	n = length(components); 
-	SumNode(components, fill(Float32(1/n), n))
+	SumNode(components, fill(1f0, n))
 end
 
-Base.getindex(m::SumNode,i ::Int) = (c = m.components[i], p = m.prior[i])
+Base.getindex(m::SumNode, i ::Int) = (c = m.components[i], p = m.prior[i])
 Base.length(m::SumNode) = length(m.components[1])
 
 Flux.@functor SumNode
@@ -55,7 +55,9 @@ end
 	logpdf of samples `x` calculated along the `tree`, which determine only  subset of models
 """
 function treelogpdf(p::SumNode, x, tree) 
-	treelogpdf(p.components[tree[1]], x, tree[2])
+	i = tree[1]
+	w = p.prior .- logsumexp(p.prior)
+	w[i] .+ treelogpdf(p.components[i], x, tree[2])
 end
 
 """

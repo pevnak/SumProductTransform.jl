@@ -15,7 +15,7 @@ treescount(m) = 1
     For distributions outside the SumProductTransform it falls back to logpdf(p, x).
 """
 treelogpdf(m, x, trees) = logpdf(m, x)
-batchtreelogpdf(m, x, trees) = map(i -> treelogpdf(m, x[:,i:i], trees[i])[1], 1:length(trees))
+batchtreelogpdf(m, x, trees) = map(i -> treelogpdf(m, x[:,i:i], trees[i]), 1:length(trees))[1]
 sampletree(m) = ()
 
 _priors(m) = nothing
