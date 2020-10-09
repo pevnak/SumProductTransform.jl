@@ -1,3 +1,4 @@
+using DistributionsAD: TuringMvNormal
 addnoise(noisedim, pnoise, p) = noisedim == 0 ? p : ProductNode((pnoise(noisedim), p))
 
 function transform(d, σ, unitary)

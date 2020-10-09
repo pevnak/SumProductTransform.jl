@@ -1,11 +1,11 @@
 using SumProductTransform, Distributions, Test
 using SumProductTransform: maptree, treelogpdf, batchtreelogpdf
-using SumProductTransform: SVDDense
+using DistributionsAD: TuringMvNormal
 
 @testset "testing the maptree" begin
 	d = 4
 	x = randn(d,10)
-	p = MvNormal(4,1)
+	p = TuringMvNormal(4,1f0)
 	m1 = TransformationNode(SVDDense(d, identity), p)
 	m2 = TransformationNode(SVDDense(d, identity), p)
 
@@ -23,9 +23,18 @@ using SumProductTransform: SVDDense
 	x = randn(length(m), 10)
 	@test maptree(m, x)[1] ≈ logpdf(m, x)
 
-	d = 8
-	x = rand(d,10)
-	m = buildmixture(d, [4,4], [identity, identity], [4,0])
-	lkl, path = maptree(m, x)
-	@test lkl ≈ batchtreelogpdf(m, x, path)
+
+
+	m = SumNode([TransformationNode(SVDDense(d), TuringMvNormal(d, 1f0)) for i in 1:9])
+	x = randn(d,100)
+	@test SumProductTransform.logsumexp(hcat([treelogpdf(m, x, (i, ())) for i in 1:9]...), dims = 2) ≈ logpdf(m, x)
+
+
+	# d = 8
+	# x = rand(d,10)
+	# m = buildmixture(d, [4,4], [identity, identity], [4,0])
+	# lkl, path = maptree(m, x)
+	# @test lkl ≈ batchtreelogpdf(m, x, path)
+
+
 end
