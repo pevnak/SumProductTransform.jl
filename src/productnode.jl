@@ -54,34 +54,34 @@ end
 ####
 #	Functions supporting calculations of likelihood along trees and their sampling
 ####
-function treelogpdf(p::ProductNode, x, path)
-	o = treelogpdf(p.components[1], x[p.dimensions[1],:], path[1])
+function treelogpdf(p::ProductNode, x, tree)
+	o = treelogpdf(p.components[1], x[p.dimensions[1],:], tree[1])
 	for i in 2:length(p.components)
-		o += treelogpdf(p.components[i], x[p.dimensions[i],:], path[i])
+		o += treelogpdf(p.components[i], x[p.dimensions[i],:], tree[i])
 	end
 	o
 end
-pathcount(m::ProductNode) = mapreduce(n -> pathcount(n), *, m.components)
-samplepath(m::ProductNode) = map(samplepath, m.components)
+treecount(m::ProductNode) = mapreduce(n -> treecount(n), *, m.components)
+sampletree(m::ProductNode) = map(sampletree, m.components)
 
 function _maptree(m::ProductNode, x)
-	o, path = _maptree(m.components[1], x[m.dimensions[1],:],)
-	path = map(s -> (s,), path)
+	o, tree = _maptree(m.components[1], x[m.dimensions[1],:],)
+	tree = map(s -> (s,), tree)
 	for i in 2:length(m.components)
 		oo, pp = _maptree(m.components[i], x[m.dimensions[i],:])
 		o .+= oo
-		path = map(s -> tuple(s[1]..., s[2]), zip(path, pp))
+		tree = map(s -> tuple(s[1]..., s[2]), zip(tree, pp))
 	end
-	o, path
+	o, tree
 end
 
 
 ####
 #	Functions for updating prior values by expectation
 ####
-function updateprior!(ps::Priors, m::ProductNode, path)
+function updateprior!(ps::Priors, m::ProductNode, tree)
 	for i in 1:length(m.components)
-		updateprior!(ps, m.components[i], path[i])
+		updateprior!(ps, m.components[i], tree[i])
 	end
 end
 
