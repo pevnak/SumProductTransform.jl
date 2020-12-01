@@ -1,6 +1,5 @@
 using IterTools, BSON, ValueHistories, MLDataPattern
 
-samplebatch(x, bs) = x[:,sample(1:size(x,2), min(size(x,2),bs), replace = false)]
 """
 	fit!(model, X, batchsize::Int, maxsteps::Int, maxpath::Int; check = 1000, minimum_improvement = typemin(Float64), opt = ADAM(), debugfile = "", xval = X)
 

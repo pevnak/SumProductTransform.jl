@@ -17,7 +17,8 @@ end
 
 logsoftmax(x; dims = :) = x .- logsumexp(x, dims = dims)
 softmax(x; dims = :) = exp.(logsoftmax(x, dims = dims))
-
+samplebatch(x, bs) = x[:, sample(1:size(x, 2), min(size(x, 2), bs), replace = false)]
+sampletrees(m, bs) = [sampletree(m) for _ in 1:bs]
 
 include("layers/layers.jl")
 include("priors.jl")

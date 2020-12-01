@@ -66,7 +66,8 @@ end
 	randomly sample a `tree` from the SPTN model
 """
 function sampletree(m::SumNode) 
-	i = sample(Weights(softmax(m.prior)))
+	# i = sample(Weights(softmax(m.prior)))
+	i = rand(1:length(m.prior))
 	(i, sampletree(m.components[i]))
 end
 
