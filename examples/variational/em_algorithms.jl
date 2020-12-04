@@ -2,13 +2,13 @@ using SumProductTransform: TransformationNode, SVDDense, logsumexp
 using ToyProblems, Flux, Distributions, Unitary, Plots
 include("distributions.jl")
 
-function bem(x, comp, α, niter, nepoch, opt)
-	α₀, α, c = deepcopy(α), deepcopy(α), deepcopy(comp)
-	p = Flux.params(c)
+plotly()
 
-	loglik = zeros(nepoch)
 
-	j = 1
+function em!(x, c, α, niter, nepoch; opt=ADAM(), p=Flux.params(c))
+	α₀, α = deepcopy(α), deepcopy(α)
+
+	loglik = []
 
 	for t in 1:niter * nepoch
 		ρ = logcond(x, c) .+ log.(α)
@@ -19,23 +19,21 @@ function bem(x, comp, α, niter, nepoch, opt)
 		g = gradient(() -> - sum(r .* logcond(x, c)), p)
 		Flux.Optimise.update!(opt, p, g)
 
-		mod(t, niter) == 0 && (loglik[j] = @show mean(log_likelihood(c, α, x)); j += 1)
+		mod(t, niter) == 0 && (ll = @show mean(log_likelihood(c, α, x)); push!(loglik, ll))
 	end
 
 	loglik
 end
 
-function sem(x, comp, α, niter, nepoch, opt, nk, ni, ϕ)
-	α, c = deepcopy(α), deepcopy(comp)
-	p = Flux.params(c)
+function sem!(x, c, α, niter, nepoch, nk, ni, ϕ; opt=ADAM(), p=Flux.params(c))
+	α = deepcopy(α)
 
 	K = length(c)
 	N = size(x, 2)
 
 	ρ = 1e-5*ones(K, N)
-	loglik = zeros(nepoch)
 
-	j = 1
+	loglik = []
 
 	for t in 1:niter * nepoch
 		i = randorrange(N, ni)
@@ -48,27 +46,27 @@ function sem(x, comp, α, niter, nepoch, opt, nk, ni, ϕ)
 
 		α = (1-ϕ)*α + ϕ*sum(r, dims=2)[:]
 
-	    g = gradient(() -> - sum(r[k, :] .* logcond(x[:, i], ck)), p)
+		g = gradient(() -> - sum(r[k, :] .* logcond(x[:, i], ck)), p)
 		Flux.Optimise.update!(opt, p, g)
 
-		mod(t, niter) == 0 && (loglik[j] = @show mean(log_likelihood(c, α, x)); j += 1)
+		mod(t, niter) == 0 && (ll = @show mean(log_likelihood(c, α, x)); push!(loglik, ll))
 	end
 
 	loglik
 end
 
-function sem_cv(x, comp, α, niter, nepoch, opt, nk, ni, ϕ)
-	α₀, αt, ct = deepcopy(α), deepcopy(α), deepcopy(comp)
-	pt = Flux.params(ct)
+function semcv!(x, ct, α, niter, nepoch, nk, ni, ϕ; opt=ADAM(), pt=Flux.params(ct))
+	α₀, αt = deepcopy(α), deepcopy(α)
 
 	K = length(ct)
 	N = size(x, 2)
 
 	ρt = 1e-5*ones(K, N)
-	loglik = zeros(nepoch)
+
+	loglik = []
 
 	for e in 1:nepoch
-	    ρe = logcond(x, ct) .+ log.(αt)
+		ρe = logcond(x, ct) .+ log.(αt)
 		re = normlogs(ρe)
 
 		αe = α₀ + sum(re, dims = 2)[:]
@@ -77,17 +75,17 @@ function sem_cv(x, comp, α, niter, nepoch, opt, nk, ni, ϕ)
 		pe = Flux.params(ce)
 		ge = gradient(() -> - sum(re .* logcond(x, ce)), pe)
 
-	    for t in 1:niter
+		for t in 1:niter
 			i = randorrange(N, ni)
 			k = randorrange(K, nk)
 
-	        ctk = ct[k]
+			ctk = ct[k]
 			cek = ce[k]
 
-	        ρt[k, i] = logcond(x[:, i], ctk) .+ log.(αt[k])
+			ρt[k, i] = logcond(x[:, i], ctk) .+ log.(αt[k])
 			rt = normlogs(ρt[:, i])
 
-	        αt = (1-ϕ)*αt + ϕ*(sum(rt, dims=2)[:] - sum(re[:, i], dims=2)[:] + αe)
+			αt = (1-ϕ)*αt + ϕ*(sum(rt, dims=2)[:] - sum(re[:, i], dims=2)[:] + αe)
 
 			gti = gradient(() -> - sum(rt[k, :] .* logcond(x[:, i], ctk)), pt)
 			gei = gradient(() -> - sum(re[k, i] .* logcond(x[:, i], cek)), pe)
@@ -95,8 +93,8 @@ function sem_cv(x, comp, α, niter, nepoch, opt, nk, ni, ϕ)
 			[gti[a] != nothing && (gti[a] .= gti[a] .- gei[b] .+ ge[b]) for (a, b) in zip(pt, pe)]
 
 	        Flux.Optimise.update!(opt, pt, gti)
-	    end
-	    loglik[e] = @show mean(log_likelihood(ct, αt, x))
+		end
+	    ll = @show mean(log_likelihood(ct, αt, x)); push!(loglik, ll)
 	end
 
 	loglik
@@ -117,32 +115,33 @@ function randorrange(m, n)
 	end
 end
 
+function gmm(kk)
+	tuple([TransformationNode(SVDDense(2, identity, :butterfly), MvNormal(2,1f0)) for _ in 1:kk]...)
+	# SumNode([MvNormal(2,1f0) for _ in 1:K])
+end
 
 K = 9
 N = 200
 x = flower(Float32, N)
-# m = SumNode([MvNormal(2,1f0) for _ in 1:K])
-m = tuple([TransformationNode(SVDDense(2, identity, :butterfly), MvNormal(2,1f0)) for _ in 1:K]...)
 α = fill(0.001f0, K)
-opt = ADAM() # step 1e-4
 
 niter = 1000
-nepoch = 5
+nepoch = 20
 nk = 3
 ni = 100
 ϕ = 0.005
 
-ll_bem      =    bem(x, m, α, niter, nepoch, opt)
-ll_sem_1    =    sem(x, m, α, niter, nepoch, opt,  0,  0, 1.0)
-ll_sem_2    =    sem(x, m, α, niter, nepoch, opt,  0,  0, ϕ  )
-ll_sem_3    =    sem(x, m, α, niter, nepoch, opt,  0, ni, ϕ  )
-ll_sem_4    =    sem(x, m, α, niter, nepoch, opt, nk,  0, ϕ  )
-ll_sem_5    =    sem(x, m, α, niter, nepoch, opt, nk, ni, ϕ  )
-ll_sem_cv_1 = sem_cv(x, m, α, niter, nepoch, opt,  0,  0, 1.0)
-ll_sem_cv_2 = sem_cv(x, m, α, niter, nepoch, opt,  0,  0, ϕ  )
-ll_sem_cv_3 = sem_cv(x, m, α, niter, nepoch, opt,  0, ni, ϕ  )
-ll_sem_cv_4 = sem_cv(x, m, α, niter, nepoch, opt, nk,  0, ϕ  )
-ll_sem_cv_5 = sem_cv(x, m, α, niter, nepoch, opt, nk, ni, ϕ  )
+ll_bem      =    em!(x, gmm(K), α, niter, nepoch)
+ll_sem_1    =   sem!(x, gmm(K), α, niter, nepoch,  0,  0, 1.0)
+ll_sem_2    =   sem!(x, gmm(K), α, niter, nepoch,  0,  0, ϕ  )
+ll_sem_3    =   sem!(x, gmm(K), α, niter, nepoch,  0, ni, ϕ  )
+ll_sem_4    =   sem!(x, gmm(K), α, niter, nepoch, nk,  0, ϕ  )
+ll_sem_5    =   sem!(x, gmm(K), α, niter, nepoch, nk, ni, ϕ  )
+ll_sem_cv_1 = cvsem!(x, gmm(K), α, niter, nepoch,  0,  0, 1.0)
+ll_sem_cv_2 = cvsem!(x, gmm(K), α, niter, nepoch,  0,  0, ϕ  )
+ll_sem_cv_3 = cvsem!(x, gmm(K), α, niter, nepoch,  0, ni, ϕ  )
+ll_sem_cv_4 = cvsem!(x, gmm(K), α, niter, nepoch, nk,  0, ϕ  )
+ll_sem_cv_5 = cvsem!(x, gmm(K), α, niter, nepoch, nk, ni, ϕ  )
 
 p1 = plot(
     hcat(ll_bem, ll_sem_1, ll_sem_2, ll_sem_3, ll_sem_4, ll_sem_5),
