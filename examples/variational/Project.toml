@@ -1,0 +1,6 @@
+[deps]
+Flux = "587475ba-b771-5e3f-ad9e-33799f191a9c"
+PrayTools = "083a1e89-a1cc-483a-bb5e-ca7e64a602e0"
+Statistics = "10745b16-79ce-11e8-11f9-7d13ad32a3b2"
+StatsBase = "2913bbd2-ae8a-5f71-8c99-4fb6c76f3a91"
+SumProductTransform = "433b66b6-b370-11e9-0fbb-5537bf1cf77b"
