@@ -120,17 +120,16 @@ function a4!(m::SumNode, x::Array{Float64, 2}, nstep::Int; nsamp::Int = 10, opt 
 
 	for t in 1:nstep
 		q = normtable(table)
-		ii = rand(1:ndata, 100)
-		s = zeros(Int8, ncomp, length(ii))
+		s = zeros(Int8, ncomp, ndata)
 
-		for (j,i) in enumerate(ii)
-			_, k[i], s[:, j] = mhsampler(m.components, q[:, i], x[:,i], k[i], nsamp)
+		for i in 1:ndata
+			_, k[i], s[:, i] = mhsampler(m.components, q[:, i], x[:,i], k[i], nsamp)
 		end
 
-		table[:,ii] = (1-ϕ)*table[:,ii] + ϕ*s
+		table = (1-ϕ)*table + ϕ*s
 		# gs = gradient(() -> -sum(mean(hcat([logjoint(m, x[:, i], z[:, i]) for i in 1:ndata]...), dims=1)), ps)
 		# gs = gradient(() -> -sum(logpdf(m.components[k[i]], x[:, i]) for i in 1:ndata), ps)
-		lp, gs = ∇tlogpdf(m.components, x[:,ii], k[ii], ps)
+		lp, gs = ∇tlogpdf(m.components, x, k, ps)
 		
 		update!(opt, ps, gs)
 		updatepriors!(m, x)
@@ -139,7 +138,7 @@ function a4!(m::SumNode, x::Array{Float64, 2}, nstep::Int; nsamp::Int = 10, opt 
 end
 
 K = 9
-N = 10000
+N = 100
 x = flower2(N, npetals = K)
 niter = 100000
 
