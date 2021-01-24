@@ -18,7 +18,10 @@ using Flux.Optimise:
 using Statistics
 using StatsBase:
     Weights,
-    sample
+	sample
+using PrayTools:
+	classindexes,
+	_pgradient
 
 function gmm(k)
 	SumNode([TransformationNode(SVDDense(2, identity, :butterfly), MvNormal(2,1f0)) for _ in 1:k])
@@ -86,30 +89,28 @@ function a3!(m::SumNode, x::Array{Float64, 2}, nstep::Int; nsamp::Int = 10, opt 
 	end
 end
 
-function mhsample(components, q, x, pₒ, kₒ)
+function mhsample(m, q, x, pₒ, kₒ)
 	kₙ = sample(Weights(q))
-	pₙ = logpdf(components[kₙ], x)
+	pₙ = logpdf(m.components[kₙ], x) + m.prior[kₙ]
 	qₒ, qₙ = q[kₒ], q[kₙ]
 	accept = log(rand()) < pₙ - pₒ + qₒ - qₙ
 	accept ? (pₙ, kₙ) : (pₒ, kₒ)
 end
 
-function mhsampler(components, q, x, k, n)
-	p = logpdf(components[k], x)
+function mhsampler(m, q, x, k, n)
+	p = logpdf(m.components[k], x) + m.prior[k]
 	s = zeros(Int, length(q))
 	for i in 1:n
-		p, k = mhsample(components, q, x, p, k)
+		p, k = mhsample(m, q, x, p, k)
 		s[k] += 1
 	end
-	(p, k, s)
+	(k, s)
 end
 
-using PrayTools
-
-function ∇tlogpdf(components, x, k, ps)
-	ki = PrayTools.classindexes(k)
-	samples = [(components[j], x[:, jj]) for (j,jj) in ki]
-	PrayTools._pgradient((c, x) -> -sum(logpdf(c, x)), ps, samples)
+function ∇logpdf(m, x, k, ps)
+	ki = classindexes(k)
+	samples = [(m.components[j], x[:, jj], m.prior[j]) for (j, jj) in ki]
+	_pgradient((c, x, p) -> -sum(logpdf(c, x) .+ p), ps, samples)
 end
 
 function a4!(m::SumNode, x::Array{Float64, 2}, nstep::Int; nsamp::Int = 10, opt = ADAM(), ps = params(m), ϕ::Float64 = 0.001)
@@ -123,16 +124,14 @@ function a4!(m::SumNode, x::Array{Float64, 2}, nstep::Int; nsamp::Int = 10, opt 
 		s = zeros(Int8, ncomp, ndata)
 
 		for i in 1:ndata
-			_, k[i], s[:, i] = mhsampler(m.components, q[:, i], x[:,i], k[i], nsamp)
+			k[i], s[:, i] = mhsampler(m, q[:, i], x[:, i], k[i], nsamp)
 		end
 
 		table = (1-ϕ)*table + ϕ*s
-		# gs = gradient(() -> -sum(mean(hcat([logjoint(m, x[:, i], z[:, i]) for i in 1:ndata]...), dims=1)), ps)
-		# gs = gradient(() -> -sum(logpdf(m.components[k[i]], x[:, i]) for i in 1:ndata), ps)
-		lp, gs = ∇tlogpdf(m.components, x, k, ps)
-		
+		_, gs = ∇logpdf(m, x, k, ps)
+
 		update!(opt, ps, gs)
-		updatepriors!(m, x)
+		# updatepriors!(m, x)
 		mod(t, 1000) == 0 && @show mean(logpdf(m, x))
 	end
 end
@@ -140,9 +139,9 @@ end
 K = 9
 N = 100
 x = flower2(N, npetals = K)
-niter = 100000
+niter = 20000
 
-gd!(gmm(K), x, niter)
+# gd!(gmm(K), x, niter)
 # println("__________")
 # em!(gmm(K), x, niter)
 # println("__________")
@@ -151,5 +150,5 @@ gd!(gmm(K), x, niter)
 # a3!(gmm(K), x, niter)
 # println("__________")
 # m = gmm(K)
-a4!(gmm(K)	, x, niter, nsamp=4)
+a4!(gmm(K), x, niter, nsamp=1)
 println("__________")
