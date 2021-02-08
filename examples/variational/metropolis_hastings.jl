@@ -21,7 +21,8 @@ using PrayTools:
 	classindexes,
 	_pgradient
 using LatinHypercubeSampling
-using Distributions
+using Distributions:
+	Dirichlet
 using Plots
 plotly()
 
@@ -63,7 +64,8 @@ end
 
 function ∇logpdf(m::SumNode, x::Array{Float64, 2}, ps; multithread::Bool = false)
 	if multithread == true
-		samples = [(x[:, j],) for j in 1:size(x, 2)]
+		i = collect(Iterators.partition(1:size(x, 2), Threads.nthreads()))
+		samples = [(x[:, j],) for j in i]
 		_pgradient((x) -> -sum(logpdf(m, x)), ps, samples)[2]
 	else
 		gradient(() -> -mean(logpdf(m, x)), ps)
@@ -72,7 +74,8 @@ end
 
 function ∇logpdf(m::SumNode, x::Array{Float64, 2}, r::Array{Float64, 2}, ps; multithread::Bool = false)
 	if multithread == true
-		samples = [(x[:, j], r[:, j]) for j in 1:size(x, 2)]
+		i = collect(Iterators.partition(1:size(x, 2), Threads.nthreads()))
+		samples = [(x[:, j], r[:, j]) for j in i]
 		_pgradient((x, r) -> -sum(r .* logjoint(m, x)), ps, samples)[2]
 	else
 		gradient(() -> -mean(r .* logjoint(m, x)), ps)
@@ -82,8 +85,8 @@ end
 function ∇logpdf(m::SumNode, x::Array{Float64, 2}, k::Array{Int64, 1}, ps; multithread::Bool = false)
 	if multithread == true
 		ki = classindexes(k)
-		samples = [(m.components[j1], x[:, j2], m.prior[j1]) for (j1, j2) in ki]
-		_pgradient((c, x, p) -> -sum(logpdf(c, x) .+ p), ps, samples)[2]
+		samples = [(x[:, j2], j1) for (j1, j2) in ki]
+		_pgradient((x, z) -> -sum(logjoint(m, x, z:z)), ps, samples)[2]
 	else
 		gradient(() -> -mean(hcat([logjoint(m, x[:, i], k[i:i]) for i in 1:size(x, 2)]...)), ps)
 	end
@@ -186,13 +189,13 @@ end
 
 function singlefit()
 	ncomp = 5
-	ndata = 10000
-	bsize = 200
-	niter = 40000
+	ndata = 1000
+	bsize = 100
+	niter = 10000
 	multi = true
 
-	# x = flower2(ndata, npetals = 5)
-	x = latinmixture(ncomp, ndata)
+	x = flower2(ndata, npetals = 5)
+	# x = latinmixture(ncomp, ndata)
 
 	m1 = gmm(ncomp)
 	m2 = gmm(ncomp)
@@ -200,9 +203,9 @@ function singlefit()
 	m4 = gmm(ncomp)
 
 	println("__gd__")
-	gdt = gd!(m1, x, niter, bsize, mt=false)
+	gdt = gd!(m1, x, niter, bsize, mt=multi)
 	println("__em__")
-	emt = em!(m2, x, niter, bsize, mt=false)
+	emt = em!(m2, x, niter, bsize, mt=multi)
 	println("__a1__")
 	a1t = a1!(m3, x, niter, bsize, mt=multi)
 	println("__a2__")
@@ -217,11 +220,11 @@ function singlefit()
 end
 
 function wallclock()
-	nruns = 1
+	nruns = 10
 	ncomp = 1:2:9
-	ndata = 10000
-	bsize = 200
-	niter = 50000
+	ndata = 1000
+	bsize = 50
+	niter = 10000
 	nalgs = 4
 	multi = true
 
@@ -242,9 +245,9 @@ function wallclock()
 			m4 = gmm(ncomp[k])
 
 			println("__gd__")
-			gdt = @timed gd!(m1, x, niter, bsize, mt=false)
+			gdt = @timed gd!(m1, x, niter, bsize, mt=multi)
 			println("__em__")
-			emt = @timed em!(m2, x, niter, bsize, mt=false)
+			emt = @timed em!(m2, x, niter, bsize, mt=multi)
 			println("__a1__")
 			a1t = @timed a1!(m3, x, niter, bsize, mt=multi)
 			println("__a2__")
@@ -278,28 +281,28 @@ function wallclock()
 		markershape = [:xcross :xcross :xcross :xcross]
 	)
 
-	p2 = plot(
-		ncomp,
-		dropdims(mean(times, dims=1), dims=1),
-		xlabel = "number of components [-]",
-		ylabel = "computational time [sec]",
-		label = ["gd" "em" "a1" "a2"],
-		markershape = [:xcross :xcross :xcross :xcross]
-	)
+	# p2 = plot(
+	# 	ncomp,
+	# 	dropdims(mean(times, dims=1), dims=1),
+	# 	xlabel = "number of components [-]",
+	# 	ylabel = "computational time [sec]",
+	# 	label = ["gd" "em" "a1" "a2"],
+	# 	markershape = [:xcross :xcross :xcross :xcross]
+	# )
 
-	p3 = plot(
-		ncomp,
-		dropdims(mean(allcs, dims=1), dims=1),
-		xlabel = "number of components [-]",
-		ylabel = "allocations [bytes]",
-		label = ["gd" "em" "a1" "a2"],
-		markershape = [:xcross :xcross :xcross :xcross]
-	)
+	# p3 = plot(
+	# 	ncomp,
+	# 	dropdims(mean(allcs, dims=1), dims=1),
+	# 	xlabel = "number of components [-]",
+	# 	ylabel = "allocations [bytes]",
+	# 	label = ["gd" "em" "a1" "a2"],
+	# 	markershape = [:xcross :xcross :xcross :xcross]
+	# )
 
 	# plot(p1, p2, p3, layout = (1, 3), size = (1800, 600))
 	display(p1)
-	display(p2)
-	display(p3)
+	# display(p2)
+	# display(p3)
 end
 
 
