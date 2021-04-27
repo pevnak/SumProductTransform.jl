@@ -31,6 +31,7 @@ include("modelbuilders.jl")
 include("fit.jl")
 include("smartinit.jl")
 include("fitting/em.jl")
+include("fitting/mhsaem.jl")
 
 Distributions.logpdf(m::T, x::AbstractVector) where {T<:Union{SumNode, TransformationNode, ProductNode}} = logpdf(m, reshape(x, :, 1))[1]
 Base.show(io::IO, ::MIME"text/plain", n::Union{SumNode, TransformationNode, ProductNode}) = HierarchicalUtils.printtree(io, n)
@@ -38,7 +39,7 @@ Base.show(io::IO, ::MIME"text/plain", n::Union{SumNode, TransformationNode, Prod
 
 export SumNode, TransformationNode, ProductNode
 export densesharedmixture, nosharedmixture, allsharedmixture, priors, updatelatent!, buildmixture, pathcount, batchlogpdf
-export em!, fit!
+export em!, fit!, mhsaem!
 export SVDNode, ScaleShift
 
 end # module
