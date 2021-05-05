@@ -1,7 +1,7 @@
 name = "SumProductTransform"
 uuid = "433b66b6-b370-11e9-0fbb-5537bf1cf77b"
 authors = ["Pevnak <pevnak@gmail.com>"]
-version = "0.1.0"
+version = "0.1.5"
 
 [deps]
 BSON = "fbb218c0-5317-5bc6-957e-2ee96dd4b1f0"
