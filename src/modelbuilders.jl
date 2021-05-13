@@ -13,11 +13,11 @@ function transform(d, σ, unitary)
 end
 
 """
-	nosharedmixture(d::Int, n::Int, l::Int, σ = identity, p = d -> TuringMvNormal(d,1f0))
+	nosharedmixture(d::Int, n::Int, l::Int, σ = identity, p = MvNormal(d,1f0))
 
 	There is not sharing here, as every children uses its own distributions
 """
-function nosharedmixture(d::Int, ns::Vector{Int}, σs::Vector, noise::Vector, p = d -> TuringMvNormal(d,1f0), unitary = :householder)
+function nosharedmixture(d::Int, ns::Vector{Int}, σs::Vector, noise::Vector, p = MvNormal(d,1f0), unitary = :butterfly)
 	@assert length(ns) == length(σs) == length(noise) 
 	@assert sum(noise) <= d
 	n, σ, noisedim = ns[1], σs[1], noise[1]
@@ -34,11 +34,11 @@ function nosharedmixture(d::Int, ns::Vector{Int}, σs::Vector, noise::Vector, p 
 end
 
 """
-	allsharedmixture(d::Int, n::Int, l::Int, σ = identity, p = d -> TuringMvNormal(d,1f0))
+	allsharedmixture(d::Int, n::Int, l::Int, σ = identity, p = MvNormal(d,1f0))
 
 	There is not sharing here, as every children uses its own distributions
 """
-function allsharedmixture(d::Int, ns::Vector{Int}, σs::Vector, noise::Vector, p = d -> TuringMvNormal(d,1f0), unitary = :householder)
+function allsharedmixture(d::Int, ns::Vector{Int}, σs::Vector, noise::Vector, p = MvNormal(d,1f0), unitary = :butterfly)
 	@assert length(ns) == length(σs) == length(noise)
 	n, σ, noisedim = ns[end], σs[end], noise[end]
 	noisedim > 0 && @warn "We ignore the noise in last layer (they are independent anyway)"
@@ -53,11 +53,11 @@ function allsharedmixture(d::Int, ns::Vector{Int}, σs::Vector, noise::Vector, p
 	m
 end
 """
-	densesharedmixture(d::Int, n::Int, l::Int, σ = identity, p = d -> TuringMvNormal(d,1f0))
+	densesharedmixture(d::Int, n::Int, l::Int, σ = identity, p = MvNormal(d,1f0))
 
 	the models share the dense non-linear layers, but they do not share components weights (priors)
 """
-function densesharedmixture(d::Int, ns::Vector{Int}, σs::Vector, noise::Vector, p = d -> TuringMvNormal(d,1f0), unitary = :householder)
+function densesharedmixture(d::Int, ns::Vector{Int}, σs::Vector, noise::Vector, p = MvNormal(d,1f0), unitary = :butterfly)
 	@assert length(ns) == length(σs) == length(noise)
 	n, σ, noisedim = ns[end], σs[end], noise[end]
 	noisedim > 0 && @warn "We ignore the noise in last layer (they are independent anyway)"
@@ -73,7 +73,7 @@ function densesharedmixture(d::Int, ns::Vector{Int}, σs::Vector, noise::Vector,
 	m
 end
 
-function buildmixture(d::Int, n::Int, l::Int, σ = identity, p = d -> TuringMvNormal(d,1f0); sharing = :all, firstdense = false, unitary = :householder)
+function buildmixture(d::Int, n::Int, l::Int, σ = identity, p = MvNormal(d,1f0); sharing = :all, firstdense = false, unitary = :butterfly)
 	ns = fill(n, l)
 	σs = fill(σ, l)
 	noise = fill(0, l)
@@ -89,7 +89,7 @@ function buildmixture(d::Int, n::Int, l::Int, σ = identity, p = d -> TuringMvNo
     model = firstdense ? TransformationNode(transform(d, σ, unitary), model) : model
 end
 
-function buildmixture(d::Int, n::Vector, l::Vector, noise::Vector = fill(0, length(n)),  p = d -> TuringMvNormal(d,1f0); sharing = :all, firstdense = false, unitary = :householder)
+function buildmixture(d::Int, n::Vector, l::Vector, noise::Vector = fill(0, length(n)),  p = MvNormal(d,1f0); sharing = :all, firstdense = false, unitary = :butterfly)
 	model = if sharing == :all 
 		allsharedmixture(d, n, l, noise, p, unitary)
 	elseif sharing == :dense

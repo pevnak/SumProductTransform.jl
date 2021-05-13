@@ -11,15 +11,20 @@ function main()
     steps = 20
     samples = 1
 
-    dataset = "sonar"
-    dir = "/home/pevnytom/Data/numerical"
+    # dataset = "sonar"
+    # dir = "/home/pevnytom/Data/numerical"
 
     x = flower2(200, npetals=9)
     # x, _, _ = makeset(loaddataset(dataset, "easy", dir)..., 0.8, "low", 1)
-    m = buildmixture(size(x, 1), n, l, identity; sharing=:none)
+    m = buildmixture(size(x, 1), n, l, identity; sharing=:none);
 
-    fit!(m, x, batchsize, steps, check=1)
-    mhsaem!(m, x, batchsize, steps, samples, check=1)
+    # fit!(m, x, batchsize, steps, check=1)
+    # mhsaem!(m, x, batchsize, steps, samples, check=1)
+    fit!(m, x, batchsize, 1, check=1)
+    mhsaem!(m, x, batchsize, 1, samples, check=1)
+
+    # 
+    # Profile.clear();@profile mhsaem!(m, x, batchsize, 1, samples, check=1); ProfileSVG.save("/tmp/profile.svg")
 end
 
 main()
