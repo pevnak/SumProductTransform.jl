@@ -1,9 +1,41 @@
 using Flux, ValueHistories, PrayTools
 using SumProductTransform: SumNode, logpdf, logsumexp, treelogpdf, sampletree
 
+"""
+	ii, v = uniquetrees(z::Vector{T})
+
+	find unique subtrees in `z` and return their indexes `ii` and values `z`
+
+Example:
+```
+julia> z = [(1, ()), (3, ()), (1, ()), (2, ())]
+
+julia> uniquetrees(z)
+3-element Vector{Pair{Tuple{Int64, Tuple{}}, Vector{Int64}}}:
+ (2, ()) => [4]
+ (3, ()) => [2]
+ (1, ()) => [1, 3]
+"""
+function uniquetrees(z::Vector{T}) where {T}
+	u = Dict{T,Vector{Int}}()
+	for (i,v) in enumerate(z)
+		if haskey(u, v)
+			u[v] = push!(u[v], i)
+		else
+			u[v] = [i]
+		end
+	end
+	collect(u)
+end
+
 logjoint(m, x, z) = treelogpdf(m, x, z)
-logjoint(m, x, z::Vector) = map(i -> logjoint(m, x[:, i], z[i]), 1:size(x, 2))
-logjoint(m, x, z::Matrix) = vcat(map(i -> logjoint(m, x, z[i, :])', 1:size(z, 1))...)
+logjoint(m, x, z::Vector) = map(i -> logjoint(m, x[:, i:i], z[i]), 1:size(x, 2))
+# logjoint(m, x, z::Matrix) = vcat(map(i -> logjoint(m, x, z[i, :])', 1:size(z, 1))...)
+
+function fast_logjoint(m, x, z::Vector) 
+	u = Zygote.@ignore uniquetrees(z)
+	sum(map(i -> sum(logjoint(m, x[:, i.second], i.first)), u))
+end
 
 fragment(x, z) = [(x[:, i:i], z[i]) for i in 1:length(z)]
 fragment(x, z, n) = [(x[:, i], z[i]) for i in Iterators.partition(1:length(z), div(length(z),n))]
@@ -77,9 +109,8 @@ function mhsaem!(model, X, batchsize::Int, maxsteps::Int, numsamples::Int; check
             z[:, b], p[b] = mhsampler(model, X[:, b], z[:, b], p[b], numsamples)
             # M-step
             xx, zz = X[:, b], z[:, b]
-            # gs = PrayTools._pgradient((x...) -> - sum(treelogpdf(model, x...)), ps, fragment(xx, zz))[2]
-            gs = PrayTools._pgradient((x...) -> - sum(logjoint(model, x...)), ps, fragment(xx, zz, Threads.nthreads()))[2]
-            # gs = Flux.gradient(() -> -mean(logjoint(model,xx,zz)), ps)
+            # gs = PrayTools._pgradient((x...) -> - sum(logjoint(model, x...)), ps, fragment(xx, zz, Threads.nthreads()))[2]
+            gs = gradient(() -> - fast_logjoint(model, xx, zz), ps)
             Flux.Optimise.update!(opt, ps, gs)
 		end
 		i += check

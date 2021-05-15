@@ -33,6 +33,7 @@ include("smartinit.jl")
 include("fitting/em.jl")
 include("fitting/mhsaem.jl")
 
+
 Distributions.logpdf(m::T, x::AbstractVector) where {T<:Union{SumNode, TransformationNode, ProductNode}} = logpdf(m, reshape(x, :, 1))[1]
 Base.show(io::IO, ::MIME"text/plain", n::Union{SumNode, TransformationNode, ProductNode}) = HierarchicalUtils.printtree(io, n)
 

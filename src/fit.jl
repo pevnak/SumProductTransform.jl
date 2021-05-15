@@ -29,8 +29,8 @@ function StatsBase.fit!(model, X, batchsize::Int, maxsteps::Int; maxtree = 100, 
 
 		# update_time = @elapsed updatelatent!(model, X, batchsize);
 		update_time = 0
-		# likelihood_time = @elapsed newlkl = - mean(batchlogpdf(model, xval, batchsize))
-		newlkl = 0
+		likelihood_time = @elapsed newlkl = - mean(batchlogpdf(model, xval, batchsize))
+		# newlkl = 0
 		likelihood_time = 0
 		println(i,": likelihood = ", -newlkl, "  time per iteration: ", train_time / i,"s update time: ",update_time,"s likelihood time: ",likelihood_time)
 		push!(history, :likelihood, i, newlkl)
