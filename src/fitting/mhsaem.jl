@@ -29,7 +29,7 @@ function uniquetrees(z::Vector{T}) where {T}
 end
 
 logjoint(m, x, z) = treelogpdf(m, x, z)
-logjoint(m, x, z::Vector) = map(i -> logjoint(m, x[:, i:i], z[i]), 1:size(x, 2))
+logjoint(m, x, z::Vector) = map(i -> logjoint(m, x[:, i], z[i]), 1:size(x, 2))
 # logjoint(m, x, z::Matrix) = vcat(map(i -> logjoint(m, x, z[i, :])', 1:size(z, 1))...)
 
 function fast_logjoint(m, x, z::Vector) 
@@ -110,7 +110,7 @@ function mhsaem!(model, X, batchsize::Int, maxsteps::Int, numsamples::Int; check
             # M-step
             xx, zz = X[:, b], z[:, b]
             # gs = PrayTools._pgradient((x...) -> - sum(logjoint(model, x...)), ps, fragment(xx, zz, Threads.nthreads()))[2]
-            gs = gradient(() -> - fast_logjoint(model, xx, zz), ps)
+            gs = gradient(() -> - fast_logjoint(model, xx, zz[:]), ps)
             Flux.Optimise.update!(opt, ps, gs)
 		end
 		i += check
