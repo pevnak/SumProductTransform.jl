@@ -45,6 +45,7 @@ export em!, fit!, mhsaem!
 export SVDNode, ScaleShift
 
 include("mill_models/processnode.jl")
+include("mill_models/distributions.jl")
 export ProcessNode
 
 end # module
