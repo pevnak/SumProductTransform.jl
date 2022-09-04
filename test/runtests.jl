@@ -7,6 +7,7 @@ include("layers/ludense.jl")
 include("layers/jacobian.jl")
 
 include("productnode.jl")
+include("processnode.jl")
 include("maxtree.jl")
 
 
