@@ -1,4 +1,4 @@
-using SumProductTransform, Test, DistributionsAD, Flux, StatsBase
+using SumProductTransform, Test, Distributions, Flux
 using Mill
 
 @testset "ProcessNode --- forward" begin
@@ -33,6 +33,6 @@ end
 	ps = Flux.params(m);
 
 
-    @test gradient(() -> sum(logpdf(m, x)), ps) != nothing
+    # @test gradient(() -> sum(logpdf(m, BN)), ps) != nothing
 	@test isempty(Flux.params(m))
 end
