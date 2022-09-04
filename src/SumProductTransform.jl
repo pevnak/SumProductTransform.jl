@@ -9,6 +9,7 @@ using FillArrays
 using Bijectors
 using HierarchicalUtils
 using HierarchicalUtils: NodeType, InnerNode, LeafNode, printchildren
+using Mill: ArrayNode, BagNode
 
 function logsumexp(x; dims = :)
 	xm = maximum(x, dims = dims)
