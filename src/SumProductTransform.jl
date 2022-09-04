@@ -44,4 +44,7 @@ export densesharedmixture, nosharedmixture, allsharedmixture, priors, updatelate
 export em!, fit!, mhsaem!
 export SVDNode, ScaleShift
 
+include("processnode.jl")
+export ProcessNode
+
 end # module
