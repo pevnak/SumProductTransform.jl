@@ -9,10 +9,6 @@ Flux.@functor ProcessNode
 Base.length(m::ProcessNode) = length(m.feature)
 
 
-function logfactorial(x::Int)
-    sum(log.(2:x))
-end
-
 function Distributions.logpdf(m::ProcessNode, x::BagNode)
     card = length.(x.bags)
 
