@@ -4,18 +4,19 @@ Distributions.logpdf(d::MultivariateDistribution, x::ArrayNode) = logpdf(d, x.da
 
 
 function logfactorial(x::Integer)
-    sum(log.(2:x))
+    sum(log.(collect(2:x)))
 end
-
 
 mutable struct PoissonA{T} <: DiscreteUnivariateDistribution
-    λ::Array{T, 0}
+    λ::Array{T, 1}
 end
+Flux.@functor PoissonA
 
-PoissonA(λ::Real) = PoissonA(fill(λ))
+PoissonA(λ::Real) = PoissonA([λ])
 PoissonA(λ::Integer) = PoissonA(float(λ))
 
 
 function Distributions.logpdf(m::PoissonA, x::Union{T, Array{T, 1}}) where {T <: Integer}
-    x .* log.(m.λ) .- m.λ .- logfactorial.(x)
+    f(λ, n) = n .* log.(λ) .- λ .- logfactorial.(n)
+    mapreduce(λ -> f(λ, x), +, m.λ)
 end
