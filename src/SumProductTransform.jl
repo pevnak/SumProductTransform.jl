@@ -52,5 +52,6 @@ include("mill_models/distributions.jl")
 
 Distributions.logpdf(m::T, x::AbstractNode) where {T<:Union{SumNode, TransformationNode, ProductNode, ProcessNode}} = logpdf(m, x)
 export ProcessNode, SumNode, ProductNode
+export PoissonA
 
 end # module

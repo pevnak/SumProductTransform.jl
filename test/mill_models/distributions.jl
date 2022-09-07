@@ -1,5 +1,4 @@
 using SumProductTransform, Test, Distributions, Flux
-using SumProductTransform: PoissonA
 using Mill
 
 @testset "PoissonA --- logpdf forward" begin
@@ -14,11 +13,18 @@ using Mill
 
 end
 
+@testset "PoissonA --- rand sampling" begin
+    m = PoissonA(6)
+    @test length(rand(m)) == length(m.λ)
+
+    m = PoissonA([2, 7, 10])
+    @test length(rand(m)) == length(m.λ)
+end
+
 @testset "PoissonA --- integration with Flux" begin
 
 	m = PoissonA(5)
     truegrad(λ, x) = -1 .+ x./λ
-    
 	ps = Flux.params(m);
 
     @test !isempty(ps)
