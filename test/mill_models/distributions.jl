@@ -1,5 +1,4 @@
 using SumProductTransform, Test, Distributions, Flux
-using Mill
 
 @testset "PoissonA --- logpdf forward" begin
 	m = PoissonA(5)

@@ -9,7 +9,7 @@ using FillArrays
 using Bijectors
 using HierarchicalUtils
 using HierarchicalUtils: NodeType, InnerNode, LeafNode, printchildren
-using Mill: ArrayNode, BagNode, AbstractNode
+import Mill
 
 function logsumexp(x; dims = :)
 	xm = maximum(x, dims = dims)
@@ -50,7 +50,7 @@ include("mill_models/productnode.jl")
 include("mill_models/distributions.jl")
 
 
-Distributions.logpdf(m::T, x::AbstractNode) where {T<:Union{SumNode, TransformationNode, ProductNode, ProcessNode}} = logpdf(m, x)
+Distributions.logpdf(m::T, x::Mill.AbstractNode) where {T<:Union{SumNode, TransformationNode, ProductNode, ProcessNode}} = logpdf(m, x)
 export ProcessNode, SumNode, ProductNode
 export PoissonA
 
