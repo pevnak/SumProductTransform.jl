@@ -27,6 +27,7 @@ end
 #	Functions for sampling the model
 ####
 Base.rand(m::ProcessNode) = rand(m.feature, rand(m.cardinality))
+Base.rand(m::ProcessNode, n::Integer) = [rand(m.feature, rand(m.cardinality)) for _ in 1:n]
 
 
 ####
