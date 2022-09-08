@@ -1,8 +1,6 @@
 
-Distributions.logpdf(m::SumNode, x::Mill.ArrayNode) = logpdf(m, x.data)
-
-function Distributions.logpdf(m::SumNode, x::Mill.BagNode)
-	lkl = transpose(hcat(map(c -> logpdf(c, x) ,m.components)...))
+function Distributions.logpdf(m::SumNode, x::Mill.AbstractNode)
+	lkl = transpose(hcat(map(c -> logpdf(c, x), m.components)...))
 	w = m.prior .- logsumexp(m.prior)
 	logsumexp(w .+ lkl, dims = 1)[:]
 end

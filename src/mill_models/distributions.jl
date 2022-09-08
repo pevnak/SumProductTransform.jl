@@ -1,6 +1,6 @@
 
-Distributions.logpdf(d::UnivariateDistribution, x::ArrayNode) = logpdf(d, x.data)
-Distributions.logpdf(d::MultivariateDistribution, x::ArrayNode) = logpdf(d, x.data)
+Distributions.logpdf(d::UnivariateDistribution, x::Mill.ArrayNode) = logpdf(d, x.data)
+Distributions.logpdf(d::MultivariateDistribution, x::Mill.ArrayNode) = logpdf(d, x.data)
 
 
 function logfactorial(x::Integer)
