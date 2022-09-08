@@ -19,7 +19,6 @@ end
 
 @testset "ProcessNode --- integration with Flux" begin
 
-    Flux.@functor Poisson
 	m = ProcessNode(MvNormal([0., 0.], [1. 0.; 0. 1.]), PoissonA(2.))
 	
     n = 10
@@ -32,7 +31,6 @@ end
 
 	ps = Flux.params(m);
 
-
-    # @test gradient(() -> sum(logpdf(m, BN)), ps) != nothing
-	@test isempty(Flux.params(m))
+    @test !isempty(Flux.params(m))
+    @test gradient(() -> sum(logpdf(m, BN)), ps) != nothing
 end

@@ -1,5 +1,5 @@
 
-mutable struct ProcessNode{T, S}
+struct ProcessNode{T, S}
     feature::T
     cardinality::S
 end
@@ -10,14 +10,26 @@ Base.length(m::ProcessNode) = length(m.feature)
 
 
 function Distributions.logpdf(m::ProcessNode, x::Mill.BagNode)
-    card = length.(x.bags)
 
-    logp_c = logpdf.(m.cardinality, card)
+    lpf_inst = logpdf(m.feature, x.data)
+
+    ll = map(ids -> sum(lpf_inst[ids]) + logpdf(m.cardinality, length(ids)) + logfactorial(length(ids)), x.bags) # nefunguje
+    # ll = map(ids -> sum(lpf_inst[ids]), x.bags)  # funguje
+    # ll = map(ids -> sum(lpf_inst[ids]) + logfactorial(length(ids)), x.bags) # nefunguje
+    # ll = map(ids -> sum(lpf_inst[ids]) + logfactorial(length(ids)), x.bags) # nefunguje
+    # ll = map(ids -> sum(lpf_inst[ids]) + logpdf(m.cardinality, 3) + logfactorial(3), x.bags) # funguje
     
-    f_bag(idx) = reduce(+, logpdf(m.feature, x[idx].data); init = 0) # init for empty bag
-    logp_f = map(f_bag, 1:length(x.bags))
 
-    ll = logp_c .+ logp_f .+ logfactorial.(card)
+    
+    # f_bag(bagid::Integer) = reduce(+, logpdf(m.feature, x[bagid].data); init = 0) # init for empty bag
+    # logp_f = map(f_bag, collect(1:length(x.bags)))
+    # x.data[:, bag]
+
+    # mapreduce( i -> logpdf(m.feature, x.data[i], +, x.bags); init=0)
+    # zip(x.bags, x)
+
+
+    # ll = logp_c .+ logp_f .+ logfactorial.(card)
     return ll
 end
 
